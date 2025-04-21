@@ -9,6 +9,23 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
+app.use((req, res, next) => {
+    // Security headers
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('X-Frame-Options', 'DENY');
+    next();
+});
+
+// Session cleanup (add this before server start)
+setInterval(() => {
+    const now = Date.now();
+    Object.keys(sessions).forEach(token => {
+        if (sessions[token].expires < now) {
+            delete sessions[token];
+        }
+    });
+}, 60 * 60 * 1000); // Clean hourly
+
 // GitLab API Configuration
 const GITLAB_CONFIG = {
     API_BASE_URL: process.env.GITLAB_API_URL || 'https://gitlab.com/api/v4',
@@ -17,8 +34,8 @@ const GITLAB_CONFIG = {
     PIPELINE_TRIGGER_TOKEN: process.env.GITLAB_PIPELINE_TRIGGER_TOKEN
 };
 
-// Add session storage (in-memory for this example)
 const sessions = {};
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const users = [
     { id: 1, username: 'user1', password: 'qa', name: 'User 1' },
@@ -29,6 +46,11 @@ const users = [
 
 // Helper function for GitLab API requests
 async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
+    // Add validation for required configuration
+    if (!GITLAB_CONFIG.API_BASE_URL || !GITLAB_CONFIG.PROJECT_ID || !GITLAB_CONFIG.ACCESS_TOKEN) {
+        throw new Error('GitLab configuration is incomplete');
+    }
+
     const url = `${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}${endpoint}`;
     const headers = {
         'Content-Type': 'application/json',
@@ -46,7 +68,8 @@ async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
         throw new Error(error.message || `GitLab API request failed with status ${response.status}`);
     }
 
-    return response.json();
+    // Ensure we always return a valid value
+    return response.json().catch(() => null) || [];
 }
 
 // API Endpoints
@@ -70,11 +93,11 @@ app.post('/api/login', (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Create session
-    const sessionToken = Math.random().toString(36).substring(2);
+    // Create persistent session
+    const sessionToken = require('crypto').randomBytes(32).toString('hex');
     sessions[sessionToken] = {
         userId: user.id,
-        expires: Date.now() + 24 * 60 * 60 * 1000 // 24 hours
+        expires: Date.now() + SESSION_DURATION
     };
     
     res.json({ 
@@ -88,8 +111,7 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Add session validation endpoint
-app.get('/api/validate-session', (req, res) => {
+app.get('/api/check-session', (req, res) => {
     const token = req.headers.authorization;
     if (!token || !sessions[token]) {
         return res.status(401).json({ valid: false });
@@ -101,11 +123,10 @@ app.get('/api/validate-session', (req, res) => {
         return res.status(401).json({ valid: false });
     }
     
-    const user = users.find(u => u.id === sessions[token].userId);
-    if (!user) {
-        return res.status(401).json({ valid: false });
-    }
+    // Extend session duration
+    sessions[token].expires = Date.now() + SESSION_DURATION;
     
+    const user = users.find(u => u.id === sessions[token].userId);
     res.json({
         valid: true,
         user: {
@@ -188,11 +209,42 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
 // Get project branches
 app.get('/api/branches', async (req, res) => {
     try {
-        const branches = await gitlabApiRequest('/repository/branches');
-        res.json(branches.map(branch => branch.name));
+        // Get all branches with pagination support
+        let allBranches = [];
+        let page = 1;
+        let morePages = true;
+        const perPage = 100; // GitLab's max per page
+
+        while (morePages) {
+            const branches = await gitlabApiRequest(`/repository/branches?per_page=${perPage}&page=${page}`);
+            
+            if (!branches || !Array.isArray(branches) || branches.length === 0) {
+                morePages = false;
+            } else {
+                allBranches = allBranches.concat(branches);
+                page++;
+                
+                // Safety check to prevent infinite loops
+                if (page > 50) { // Maximum 5000 branches (100 per page × 50)
+                    morePages = false;
+                    console.warn('Hit safety limit while fetching branches');
+                }
+            }
+        }
+
+        // Extract branch names and sort alphabetically
+        const branchNames = allBranches
+            .map(branch => branch.name)
+            .filter(name => name)
+            .sort((a, b) => a.localeCompare(b));
+
+        res.json(branchNames);
     } catch (error) {
         console.error('Branches fetch error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            details: 'Failed to retrieve branches from GitLab'
+        });
     }
 });
 

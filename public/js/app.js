@@ -652,14 +652,96 @@ function copyText() {
 
 // Add these new functions to handle GitLab API operations
 async function fetchBranches() {
+    const branchSelector = document.getElementById('branch-selector');
+    const pipelineStatus = document.getElementById('pipeline-status');
+    
     try {
+        // Show loading state
+        branchSelector.innerHTML = '<option value="">Loading branches (this may take a while)...</option>';
+        branchSelector.disabled = true;
+
         const response = await fetch('/api/branches');
-        if (!response.ok) throw new Error('Failed to fetch branches');
-        return await response.json();
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        let branches = await response.json();
+        
+        // // Validate response structure
+        // if (!Array.isArray(branches)) {
+        //     console.error('Invalid branches format:', branches);
+        //     throw new Error('Server returned invalid branch data format');
+        // }
+
+        // // Update dropdown with all branches
+        // branchSelector.innerHTML = branches
+        //     .map(branch => `<option value="${branch}">${branch}</option>`)
+        //     .join('');
+
+        // Ensure branches is an array and has "main"
+        if (!Array.isArray(branches)) branches = [];
+        if (!branches.includes('main')) branches.unshift('main');
+        
+        // Initialize SlimSelect with proper configuration for large datasets
+        new SlimSelect({
+            select: '#branch-selector',
+            settings: {
+                placeholderText: 'Select branch',
+                allowDeselect: false, // Force selection
+                showSearch: true,
+                searchPlaceholder: 'Search branches...',
+                searchText: 'No matches found',
+                searchingText: 'Searching branches...'
+            },
+            data: [
+                // Add main branch first as default selected
+                { text: 'main', value: 'main', selected: true },
+                // Add all other branches
+                ...branches.filter(b => b !== 'main').map(branch => ({
+                    text: branch,
+                    value: branch
+                }))
+            ],
+            events: {
+                afterOpen: () => {
+                    const searchInput = document.querySelector('.ss-search input');
+                    if (searchInput) searchInput.focus();
+                }
+            }
+        });
+        
     } catch (error) {
-        console.error('Error fetching branches:', error);
-        showError('Failed to load branches: ' + error.message);
-        return ['main']; // Fallback to main branch
+        // console.error('Branch loading error:', error);
+        
+        // // Update UI with error state
+        // branchSelector.innerHTML = `
+        //     <option value="main">main (fallback)</option>
+        //     <option value="">Error loading branches</option>
+        // `;
+        
+        // // Show error message
+        // showPipelineStatus(
+        //     `Failed to load all branches: ${error.message}`,
+        //     'error',
+        //     'Showing only main branch as fallback'
+        // );
+        console.error('Error loading branches:', error);
+        // Fallback to just "main" branch
+        new SlimSelect({
+            select: '#branch-selector',
+            settings: {
+                placeholderText: 'Select branch',
+                allowDeselect: false
+            },
+            data: [
+                { text: 'main', value: 'main', selected: true }
+            ]
+        });
+        showPipelineStatus('Using fallback branch list', 'warning');
+    } finally {
+        branchSelector.disabled = false;
     }
 }
 
@@ -797,11 +879,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateTable();
 
     // Load branches when page loads
-    fetchBranches().then(branches => {
-        branchSelector.innerHTML = branches.map(branch => 
-            `<option value="${branch}">${branch}</option>`
-        ).join('');
-    });
+    fetchBranches()
+        // .then(branches => {
+        //     const branchSelector = document.getElementById('branch-selector');
+            
+        //     // Clear existing options
+        //     branchSelector.innerHTML = '';
+            
+        //     // Add branches or fallback to 'main'
+        //     if (branches && branches.length > 0) {
+        //         branches.forEach(branch => {
+        //             const option = document.createElement('option');
+        //             option.value = branch;
+        //             option.textContent = branch;
+        //             branchSelector.appendChild(option);
+        //         });
+        //     } else {
+        //         // Fallback option
+        //         const option = document.createElement('option');
+        //         option.value = 'main';
+        //         option.textContent = 'main';
+        //         branchSelector.appendChild(option);
+        //     }
+        // })
+        // .catch(error => {
+        //     console.error('Branch loading failed:', error);
+        //     // Ensure there's at least the main branch available
+        //     const branchSelector = document.getElementById('branch-selector');
+        //     branchSelector.innerHTML = '<option value="main">main</option>';
+        // });
 
     // Check if user is already logged in
     checkLoginStatus();
@@ -809,8 +915,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners
     await loadUsers();
     
-    // Check existing session
-    const user = await checkAuth();
+    // Check for existing session
+    const user = await checkPersistentSession();
     if (user) {
         showLoggedInState(user);
     } else {
@@ -819,7 +925,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Event listeners
     loginBtn.addEventListener('click', handleLogin);
-    logoutBtn.addEventListener('click', handleLogout);
+    logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('sessionToken');
+        showLoggedOutState();
+    });
+
     generateBtn.addEventListener('click', generatePipeline);
     triggerBtn.addEventListener('click', triggerPipeline);
     
@@ -832,6 +942,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
+    // Persistent session management
+    async function checkPersistentSession() {
+        const token = localStorage.getItem('sessionToken');
+        if (!token) return false;
+        
+        try {
+            const response = await fetch('/api/check-session', {
+                headers: { 'Authorization': token }
+            });
+            
+            if (!response.ok) {
+                localStorage.removeItem('sessionToken');
+                return false;
+            }
+            
+            const { valid, user } = await response.json();
+            if (valid) {
+                // Refresh token in localStorage
+                localStorage.setItem('sessionToken', token);
+                return user;
+            }
+            return false;
+        } catch (error) {
+            console.error('Session check failed:', error);
+            return false;
+        }
+    }
+
     // Load users on page load
     async function loadUsers() {
         try {
@@ -881,11 +1019,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const username = usernameSelect.value;
         const password = passwordInput.value;
         
-        if (!username || !password) {
-            showError('Please select a user and enter a password');
-            return;
-        }
-        
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
@@ -893,12 +1026,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify({ username, password })
             });
             
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Login failed');
-            }
+            if (!response.ok) throw new Error('Login failed');
             
-            const { user } = await response.json();
+            const { token, user } = await response.json();
+            localStorage.setItem('sessionToken', token);
             showLoggedInState(user);
         } catch (error) {
             showError(error.message);
@@ -938,15 +1069,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function generatePipeline() {
         const outputText = document.getElementById('output-text').value;
         if (!outputText) {
-            pipelineStatus.innerHTML = `
-                <div class="status-message error">
-                    Please select at least one game to test
-                </div>
-            `;
+            showPipelineStatus('Please select at least one game to test', 'error');
             return;
         }
-
+    
         try {
+            showPipelineStatus('Generating pipeline...', 'info');
+            
             const response = await fetch('/api/generate-pipeline', {
                 method: 'POST',
                 headers: {
@@ -954,33 +1083,95 @@ document.addEventListener('DOMContentLoaded', async () => {
                 },
                 body: JSON.stringify({ selectedGames: outputText.split(',') })
             });
-            
+    
             if (!response.ok) {
-                throw new Error('Failed to generate pipeline');
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error || 'Failed to generate pipeline');
             }
-            
+    
             const data = await response.json();
             generatedPipeline = data.pipelineYml;
-            
-            triggerSection.style.display = 'flex';
-            
-            pipelineStatus.innerHTML = `
-                <div class="status-message success">
-                    Pipeline generated successfully!
-                </div>
-                <div class="pipeline-preview">
-                    <pre>${escapeHtml(generatedPipeline.substring(0, 200))}...</pre>
-                </div>
-            `;
-            
+    
+            // Show success with full pipeline YML
+            showPipelineStatus(
+                'Pipeline generated successfully!', 
+                'success',
+                generatedPipeline
+            );
+    
+            // Show the trigger section
+            document.getElementById('pipeline-trigger-section').style.display = 'block';
         } catch (error) {
             console.error('Pipeline generation error:', error);
+            showPipelineStatus(
+                `Failed to generate pipeline: ${error.message}`,
+                'error',
+                error.stack // Shows stack trace in details
+            );
+        }
+    }
+
+    function showPipelineStatus(message, type = 'info', details = '') {
+        const pipelineStatus = document.getElementById('pipeline-status');
+        if (!pipelineStatus) return;
+    
+        // Clear previous messages
+        pipelineStatus.innerHTML = '';
+    
+        // Create message container
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `status-message ${type}`;
+        
+        // Main message
+        const messageElement = document.createElement('div');
+        messageElement.textContent = message;
+        messageDiv.appendChild(messageElement);
+    
+        // Add details if provided
+        if (details) {
+            const detailsElement = document.createElement('div');
+            detailsElement.className = 'status-details';
+            detailsElement.textContent = details;
+            messageDiv.appendChild(detailsElement);
+        }
+    
+        pipelineStatus.appendChild(messageDiv);
+    }
+
+    /**
+     * Clears the pipeline status display
+     */
+    function clearPipelineStatus() {
+        const pipelineStatus = document.getElementById('pipeline-status');
+        if (pipelineStatus) {
+            pipelineStatus.innerHTML = '';
+        }
+    }
+
+    /**
+     * Shows a loading spinner in the status area
+     */
+    function showPipelineLoading() {
+        const pipelineStatus = document.getElementById('pipeline-status');
+        if (pipelineStatus) {
             pipelineStatus.innerHTML = `
-                <div class="status-message error">
-                    Failed to generate pipeline: ${error.message}
+                <div class="status-message info">
+                    <div class="loading-spinner"></div>
+                    <span>Processing...</span>
                 </div>
             `;
         }
+    }
+
+    // Add to your utility functions
+    function copyPipelineYml() {
+        const ymlText = generatedPipeline;
+        navigator.clipboard.writeText(ymlText);
+        const button = document.querySelector('.copy-yml-button');
+        button.textContent = 'Copied!';
+        setTimeout(() => {
+            button.textContent = 'Copy YML';
+        }, 2000);
     }
 
     async function triggerPipeline() {

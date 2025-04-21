@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitLab Pipeline Generator</title>
     <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2.8.0/dist/slimselect.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/slim-select@2.8.0/dist/slimselect.min.js"></script>
 </head>
 <body class="dark-mode">
     <div class="container">
@@ -43,7 +45,7 @@
                 <button onclick="toggleButton(this)">MOBILE</button>
                 <button onclick="clearButtons()">CLEAR</button>
             </div>
-            <button id="generate-btn" disabled>Generate Pipeline</button>
+            <!-- <button id="generate-btn" disabled>Generate Pipeline</button> -->
         </div>
 
         <div id="edit-games">
@@ -88,17 +90,19 @@
         <!-- Moved Copy Button and Textarea -->
         <div class="output-container">
             <textarea id="output-text" readonly></textarea>
-            <button class="copy-button" onclick="copyText()">COPY</button>
+            <!-- <button class="copy-button" onclick="copyText()">COPY</button> -->
+            <button id="generate-btn" disabled>Generate Pipeline</button>
         </div>
 
         <!-- Moved Generate Pipeline Button -->
         <div class="pipeline-controls">
-            <button id="generate-btn" disabled>Generate Pipeline</button>
+            <div class="sub-title">Select on which branch to run</div>
+            <div id="branch-load-error" class="error-message" style="display: none;"></div>
             <div id="pipeline-trigger-section" style="display: none;">
-                <select id="branch-selector">
-                    <option value="main">main</option>
-                </select>
-                <button id="trigger-btn">Trigger Pipeline</button>
+                <div class="branch-selection-container">
+                    <select id="branch-selector" class="branch-selector"></select>
+                    <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
+                </div>
             </div>
         </div>
 
