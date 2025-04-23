@@ -636,135 +636,74 @@ function updateOutput() {
     outputText.value = output.slice(0, -1);
 }
 
-function copyText() {
-    const outputText = document.getElementById('output-text');
-    outputText.select();
-    document.execCommand('copy');
+// function copyText() {
+//     const outputText = document.getElementById('output-text');
+//     outputText.select();
+//     document.execCommand('copy');
     
-    // Optional: Show feedback
-    const copyButton = document.querySelector('.copy-button');
-    const originalText = copyButton.textContent;
-    copyButton.textContent = 'Copied!';
-    setTimeout(() => {
-        copyButton.textContent = originalText;
-    }, 2000);
-}
+//     // Optional: Show feedback
+//     const copyButton = document.querySelector('.copy-button');
+//     const originalText = copyButton.textContent;
+//     copyButton.textContent = 'Copied!';
+//     setTimeout(() => {
+//         copyButton.textContent = originalText;
+//     }, 2000);
+// }
 
-// Add these new functions to handle GitLab API operations
-async function fetchBranches() {
-    const branchSelector = document.getElementById('branch-selector');
-    const pipelineStatus = document.getElementById('pipeline-status');
-    
-    try {
-        // Show loading state
-        branchSelector.innerHTML = '<option value="">Loading branches (this may take a while)...</option>';
-        branchSelector.disabled = true;
+// commented out if GitLab API is not available for content passing
+// async function triggerPipeline(branch, selectedGames, pipelineContent) {
+//     try {
+//         const response = await fetch('/api/trigger-pipeline', {
+//             method: 'POST',
+//             credentials: 'include',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify({
+//                 branch,
+//                 variables: {
+//                     SELECTED_GAMES: selectedGames
+//                 },
+//                 pipelineContent
+//             })
+//         });
 
-        const response = await fetch('/api/branches');
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-        
-        let branches = await response.json();
-        
-        // // Validate response structure
-        // if (!Array.isArray(branches)) {
-        //     console.error('Invalid branches format:', branches);
-        //     throw new Error('Server returned invalid branch data format');
-        // }
+//         if (!response.ok) {
+//             const error = await response.json();
+//             throw new Error(error.error || 'Failed to trigger pipeline');
+//         }
 
-        // // Update dropdown with all branches
-        // branchSelector.innerHTML = branches
-        //     .map(branch => `<option value="${branch}">${branch}</option>`)
-        //     .join('');
+//         return await response.json();
+//     } catch (error) {
+//         console.error('Pipeline trigger error:', error);
+//         throw error;
+//     }
+// }
 
-        // Ensure branches is an array and has "main"
-        if (!Array.isArray(branches)) branches = [];
-        if (!branches.includes('main')) branches.unshift('main');
-        
-        // Initialize SlimSelect with proper configuration for large datasets
-        new SlimSelect({
-            select: '#branch-selector',
-            settings: {
-                placeholderText: 'Select branch',
-                allowDeselect: false, // Force selection
-                showSearch: true,
-                searchPlaceholder: 'Search branches...',
-                searchText: 'No matches found',
-                searchingText: 'Searching branches...'
-            },
-            data: [
-                // Add main branch first as default selected
-                { text: 'main', value: 'main', selected: true },
-                // Add all other branches
-                ...branches.filter(b => b !== 'main').map(branch => ({
-                    text: branch,
-                    value: branch
-                }))
-            ],
-            events: {
-                afterOpen: () => {
-                    const searchInput = document.querySelector('.ss-search input');
-                    if (searchInput) searchInput.focus();
-                }
-            }
-        });
-        
-    } catch (error) {
-        // console.error('Branch loading error:', error);
-        
-        // // Update UI with error state
-        // branchSelector.innerHTML = `
-        //     <option value="main">main (fallback)</option>
-        //     <option value="">Error loading branches</option>
-        // `;
-        
-        // // Show error message
-        // showPipelineStatus(
-        //     `Failed to load all branches: ${error.message}`,
-        //     'error',
-        //     'Showing only main branch as fallback'
-        // );
-        console.error('Error loading branches:', error);
-        // Fallback to just "main" branch
-        new SlimSelect({
-            select: '#branch-selector',
-            settings: {
-                placeholderText: 'Select branch',
-                allowDeselect: false
-            },
-            data: [
-                { text: 'main', value: 'main', selected: true }
-            ]
-        });
-        showPipelineStatus('Using fallback branch list', 'warning');
-    } finally {
-        branchSelector.disabled = false;
-    }
-}
+async function triggerPipeline(branch, selectedGames) {
 
-async function triggerPipeline(branch, variables) {
+    console.log('Triggering with branch:', branch);
+
     try {
         const response = await fetch('/api/trigger-pipeline', {
             method: 'POST',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 branch,
                 variables: {
-                    SELECTED_GAMES: variables.SELECTED_GAMES
+                    SELECTED_GAMES: selectedGames
                 }
             })
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to trigger pipeline');
         }
-        
+
         return await response.json();
     } catch (error) {
         console.error('Pipeline trigger error:', error);
@@ -780,42 +719,6 @@ async function checkPipelineStatus(pipelineId) {
     } catch (error) {
         console.error('Pipeline status error:', error);
         throw error;
-    }
-}
-
-// Update the triggerPipeline function to use real API
-async function triggerPipeline() {
-    if (!generatedPipeline) {
-        showError('No pipeline generated to trigger');
-        return;
-    }
-    
-    const selectedBranch = branchSelector.value || 'main';
-    const outputText = document.getElementById('output-text').value;
-    
-    try {
-        showPipelineStatus('Triggering pipeline on branch: ' + selectedBranch);
-        
-        const pipelineData = await triggerPipeline(selectedBranch, {
-            SELECTED_GAMES: outputText
-        });
-        
-        showPipelineStatus(`
-            <div class="status-message success">
-                Pipeline triggered successfully! ID: ${pipelineData.id}
-            </div>
-            <div class="pipeline-progress">
-                <div class="progress-bar">
-                    <div class="progress" style="width: 0%"></div>
-                </div>
-                <div class="progress-text">Status: ${pipelineData.status}</div>
-            </div>
-        `);
-        
-        // Start polling for pipeline status
-        pollPipelineStatus(pipelineData.id);
-    } catch (error) {
-        showError('Failed to trigger pipeline: ' + error.message);
     }
 }
 
@@ -864,10 +767,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutBtn = document.getElementById('logout-btn');
     const currentUserSpan = document.getElementById('current-user');
     const generateBtn = document.getElementById('generate-btn');
-    const triggerSection = document.getElementById('pipeline-trigger-section');
-    const triggerBtn = document.getElementById('trigger-btn');
-    const branchSelector = document.getElementById('branch-selector');
-    const pipelineStatus = document.getElementById('pipeline-status');
+    // const triggerSection = document.getElementById('pipeline-trigger-section');
+    // const triggerBtn = document.getElementById('trigger-btn');
+    // const branchSelector = document.getElementById('branch-selector');
+    // const pipelineStatus = document.getElementById('pipeline-status');
 
     // Store generated pipeline
     let generatedPipeline = null;
@@ -878,40 +781,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     updateTable();
 
-    // Load branches when page loads
-    fetchBranches()
-        // .then(branches => {
-        //     const branchSelector = document.getElementById('branch-selector');
-            
-        //     // Clear existing options
-        //     branchSelector.innerHTML = '';
-            
-        //     // Add branches or fallback to 'main'
-        //     if (branches && branches.length > 0) {
-        //         branches.forEach(branch => {
-        //             const option = document.createElement('option');
-        //             option.value = branch;
-        //             option.textContent = branch;
-        //             branchSelector.appendChild(option);
-        //         });
-        //     } else {
-        //         // Fallback option
-        //         const option = document.createElement('option');
-        //         option.value = 'main';
-        //         option.textContent = 'main';
-        //         branchSelector.appendChild(option);
-        //     }
-        // })
-        // .catch(error => {
-        //     console.error('Branch loading failed:', error);
-        //     // Ensure there's at least the main branch available
-        //     const branchSelector = document.getElementById('branch-selector');
-        //     branchSelector.innerHTML = '<option value="main">main</option>';
-        // });
-
-    // Check if user is already logged in
-    checkLoginStatus();
-    
     // Event listeners
     await loadUsers();
     
@@ -925,55 +794,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Event listeners
     loginBtn.addEventListener('click', handleLogin);
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('sessionToken');
+    logoutBtn.addEventListener('click', async () => {
+        await fetch('/api/logout', { method: 'POST', credentials: 'include' });
         showLoggedOutState();
     });
-
-    generateBtn.addEventListener('click', generatePipeline);
-    triggerBtn.addEventListener('click', triggerPipeline);
     
-    function checkLoginStatus() {
-        const loggedInUser = localStorage.getItem('loggedInUser');
-        if (loggedInUser) {
-            showLoggedInState(loggedInUser);
-        } else {
-            showLoggedOutState();
-        }
-    }
+    generateBtn.addEventListener('click', generatePipeline);
     
     // Persistent session management
     async function checkPersistentSession() {
-        const token = localStorage.getItem('sessionToken');
-        if (!token) return false;
-        
         try {
             const response = await fetch('/api/check-session', {
-                headers: { 'Authorization': token }
+                credentials: 'include' // 👈 include session cookie
             });
-            
-            if (!response.ok) {
-                localStorage.removeItem('sessionToken');
-                return false;
-            }
-            
+    
+            if (!response.ok) return false;
+    
             const { valid, user } = await response.json();
-            if (valid) {
-                // Refresh token in localStorage
-                localStorage.setItem('sessionToken', token);
-                return user;
-            }
-            return false;
+            return valid ? user : false;
         } catch (error) {
             console.error('Session check failed:', error);
             return false;
         }
     }
-
+    
     // Load users on page load
     async function loadUsers() {
         try {
-            const response = await fetch('/api/users');
+            const response = await fetch('/api/users', {
+                method: 'GET',
+                credentials: 'include' // 👈 important!
+            });
             if (!response.ok) throw new Error('Failed to load users');
             const users = await response.json();
             
@@ -988,65 +839,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Auth functions
-    async function checkAuth() {
-        const token = localStorage.getItem('sessionToken');
-        if (!token) return false;
-        
-        try {
-            const response = await fetch('/api/validate-session', {
-                headers: { 'Authorization': token }
-            });
-            
-            if (!response.ok) {
-                localStorage.removeItem('sessionToken');
-                return false;
-            }
-            
-            const { valid, user } = await response.json();
-            if (valid) {
-                return user;
-            }
-            return false;
-        } catch (error) {
-            console.error('Session validation error:', error);
-            return false;
-        }
-    }
-
     // Handle login
     async function handleLogin() {
         const username = usernameSelect.value;
         const password = passwordInput.value;
-        
+    
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password }),
+                credentials: 'include' // 👈 important!
             });
-            
+    
             if (!response.ok) throw new Error('Login failed');
-            
-            const { token, user } = await response.json();
-            localStorage.setItem('sessionToken', token);
+    
+            const { user } = await response.json(); // no token!
             showLoggedInState(user);
         } catch (error) {
             showError(error.message);
         }
-    }
+    }    
 
-    // Handle logout
-    function handleLogout() {
-        showLoggedOutState();
-    }
-    
     // UI state functions
     function showLoggedInState(user) {
         loginForm.style.display = 'none';
         loggedInUser.style.display = 'flex';
         currentUserSpan.textContent = `Logged in as: ${user.name}`;
         document.getElementById('generate-btn').disabled = false;
+        document.getElementById('pipeline-trigger-section').style.display = 'block';
+        document.getElementById('app-content').style.display = 'block'; // 👈 show the main UI
+    // ✅ Only fetch branches after login/session confirmed
+    fetchBranches();
     }
 
     function showLoggedOutState() {
@@ -1055,6 +879,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentUserSpan.textContent = '';
         document.getElementById('generate-btn').disabled = true;
         document.getElementById('pipeline-trigger-section').style.display = 'none';
+        document.getElementById('app-content').style.display = 'none'; // 👈 hide the main UI
     }
 
     function showError(message) {
@@ -1064,6 +889,80 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => {
             errorElement.style.display = 'none';
         }, 5000);
+    }
+
+    let slimBranchSelector;
+
+    // Add these new functions to handle GitLab API operations
+    async function fetchBranches() {
+        const branchSelector = document.getElementById('branch-selector');
+        
+        try {
+            // Show loading state
+            branchSelector.innerHTML = '<option value="">Loading branches (this may take a while)...</option>';
+            branchSelector.disabled = true;
+
+            const response = await fetch('/api/branches', {
+                method: 'GET',
+                credentials: 'include' // Include session cookie
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            let branches = await response.json();
+
+            // Ensure branches is an array and has "main"
+            if (!Array.isArray(branches)) branches = [];
+            if (!branches.includes('main')) branches.unshift('main');
+            
+            // Initialize SlimSelect with proper configuration for large datasets
+            slimBranchSelector = new SlimSelect({
+                select: '#branch-selector',
+                settings: {
+                    placeholderText: 'Select branch',
+                    allowDeselect: false, // Force selection
+                    showSearch: true,
+                    searchPlaceholder: 'Search branches...',
+                    searchText: 'No matches found',
+                    searchingText: 'Searching branches...'
+                },
+                data: [
+                    // Add main branch first as default selected
+                    { text: 'main', value: 'main', selected: true },
+                    // Add all other branches
+                    ...branches.filter(b => b !== 'main').map(branch => ({
+                        text: branch,
+                        value: branch
+                    }))
+                ],
+                events: {
+                    afterOpen: () => {
+                        const searchInput = document.querySelector('.ss-search input');
+                        if (searchInput) searchInput.focus();
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error loading branches:', error);
+            // Fallback to just "main" branch
+            slimBranchSelector = new SlimSelect({
+                select: '#branch-selector',
+                settings: {
+                    placeholderText: 'Select branch',
+                    allowDeselect: false
+                },
+                data: [
+                    { text: 'main', value: 'main', selected: true }
+                ]
+            });
+            showPipelineStatus('Using fallback branch list', 'warning');
+        } finally {
+            branchSelector.disabled = false;
+        }
     }
 
     async function generatePipeline() {
@@ -1078,6 +977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const response = await fetch('/api/generate-pipeline', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -1111,6 +1011,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    document.getElementById('trigger-pipeline-btn').addEventListener('click', async () => {
+        const selectedBranch = slimBranchSelector.selected();
+        const selectedGames = document.getElementById('output-text').value;
+        
+        if (!generatedPipeline) {
+            showError('No pipeline generated to trigger');
+            return;
+        }
+    
+        try {
+            showPipelineStatus(`Triggering pipeline on branch: ${selectedBranch}`);
+            // comment out if GitLab API is not available for content passing
+            // const pipelineData = await triggerPipeline(selectedBranch, selectedGames, generatedPipeline);
+            const pipelineData = await triggerPipeline(selectedBranch, selectedGames);
+    
+            showPipelineStatus(`
+                <div class="status-message success">
+                    Pipeline triggered successfully! ID: ${pipelineData.id}
+                </div>
+                <div class="pipeline-progress">
+                    <div class="progress-bar">
+                        <div class="progress" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">Status: ${pipelineData.status}</div>
+                </div>
+            `);
+    
+            // Start polling
+            pollPipelineStatus(pipelineData.id);
+        } catch (error) {
+            showError('Failed to trigger pipeline: ' + error.message);
+        }
+    });
+
     function showPipelineStatus(message, type = 'info', details = '') {
         const pipelineStatus = document.getElementById('pipeline-status');
         if (!pipelineStatus) return;
@@ -1138,116 +1072,96 @@ document.addEventListener('DOMContentLoaded', async () => {
         pipelineStatus.appendChild(messageDiv);
     }
 
-    /**
-     * Clears the pipeline status display
-     */
-    function clearPipelineStatus() {
-        const pipelineStatus = document.getElementById('pipeline-status');
-        if (pipelineStatus) {
-            pipelineStatus.innerHTML = '';
-        }
-    }
-
-    /**
-     * Shows a loading spinner in the status area
-     */
-    function showPipelineLoading() {
-        const pipelineStatus = document.getElementById('pipeline-status');
-        if (pipelineStatus) {
-            pipelineStatus.innerHTML = `
-                <div class="status-message info">
-                    <div class="loading-spinner"></div>
-                    <span>Processing...</span>
-                </div>
-            `;
-        }
-    }
-
-    // Add to your utility functions
-    function copyPipelineYml() {
-        const ymlText = generatedPipeline;
-        navigator.clipboard.writeText(ymlText);
-        const button = document.querySelector('.copy-yml-button');
-        button.textContent = 'Copied!';
-        setTimeout(() => {
-            button.textContent = 'Copy YML';
-        }, 2000);
-    }
-
-    async function triggerPipeline() {
-        const branch = document.getElementById('branch-selector').value;
-        const selectedGames = document.getElementById('output-text').value;
+    // async function triggerPipeline() {
+    //     try {
+    //         const branch = document.getElementById('branch-selector').value;
+    //         const pipelineYml = generatedPipeline;
+            
+    //         showPipelineStatus(`Triggering pipeline on ${branch}...`, 'info');
+            
+    //         const response = await fetch('/api/trigger-pipeline', {
+    //             method: 'POST',
+    //             credentials: 'include',
+    //             headers: {
+    //                 'Content-Type': 'application/json'
+    //             },
+    //             body: JSON.stringify({
+    //                 branch: branch,
+    //                 pipelineContent: pipelineYml,
+    //                 variables: {
+    //                     SELECTED_GAMES: document.getElementById('output-text').value
+    //                 }
+    //             })
+    //         });
     
-        try {
-            const response = await fetch('/api/trigger-pipeline', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    branch,
-                    variables: { SELECTED_GAMES: selectedGames }
-                })
-            });
-            
-            if (!response.ok) throw new Error('Failed to trigger pipeline');
-            const pipeline = await response.json();
-            
-            // Display pipeline info
-            document.getElementById('pipeline-status').innerHTML = `
-                <div class="status-message success">
-                    Pipeline triggered! ID: ${pipeline.id}
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar" style="width: 0%"></div>
-                    <div class="status">Status: ${pipeline.status}</div>
-                </div>
-            `;
-            
-            // Start polling for status updates
-            pollPipelineStatus(pipeline.id);
-        } catch (error) {
-            document.getElementById('pipeline-status').innerHTML = `
-                <div class="status-message error">
-                    Failed to trigger pipeline: ${error.message}
-                </div>
-            `;
-        }
-    }
+    //         const data = await response.json();
+    //         showPipelineStatus(
+    //             `Pipeline triggered! ID: ${data.id}`,
+    //             'success',
+    //             `View pipeline: ${data.web_url}`
+    //         );
+    //     } catch (error) {
+    //         showPipelineStatus(
+    //             `Trigger failed: ${error.message}`,
+    //             'error'
+    //         );
+    //     }
+    // }
 
     async function pollPipelineStatus(pipelineId) {
         const interval = setInterval(async () => {
             try {
                 const response = await fetch(`/api/pipeline-status/${pipelineId}`);
                 if (!response.ok) throw new Error('Failed to fetch status');
-                const status = await response.json();
                 
-                // Update progress bar
-                const progressBar = document.querySelector('.progress-bar');
-                const statusText = document.querySelector('.status');
-                progressBar.style.width = `${status.progress}%`;
-                statusText.textContent = `Status: ${status.status} (${status.progress}%)`;
+                const status = await response.json();
+                updatePipelineStatusDisplay(status);
                 
                 // Stop polling if pipeline completes
                 if (['success', 'failed', 'canceled'].includes(status.status)) {
                     clearInterval(interval);
-                    if (status.status === 'success') {
-                        statusText.innerHTML += '<br>✅ Pipeline succeeded!';
-                    } else {
-                        statusText.innerHTML += '<br>❌ Pipeline failed.';
-                    }
+                    // Optional: Refresh status one final time
+                    setTimeout(() => updatePipelineStatusDisplay(status), 1000);
                 }
             } catch (error) {
                 clearInterval(interval);
                 console.error('Polling error:', error);
+                showPipelineStatus('Pipeline status updates stopped', 'error');
             }
-        }, 5000); // Check every 5 seconds
+        }, 5000); // Poll every 5 seconds
     }
-
-    function escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+    
+    function updatePipelineStatusDisplay(status) {
+        // Get or create status container
+        let statusContainer = document.getElementById('pipeline-status-container');
+        if (!statusContainer) {
+            statusContainer = document.createElement('div');
+            statusContainer.id = 'pipeline-status-container';
+            document.getElementById('pipeline-status').appendChild(statusContainer);
+        }
+    
+        // Update progress bar
+        const progressBar = document.querySelector('.progress-bar .progress');
+        if (progressBar) {
+            progressBar.style.width = `${status.progress}%`;
+            progressBar.style.backgroundColor = 
+                status.status === 'success' ? '#4CAF50' :
+                status.status === 'failed' ? '#f44336' : '#2196F3';
+        }
+    
+        // Update status text
+        statusContainer.innerHTML = `
+            <div class="status-message ${status.status}">
+                <strong>Pipeline Status:</strong> ${status.status.toUpperCase()}<br>
+                <strong>Progress:</strong> ${status.progress}%<br>
+                ${status.web_url ? `<a href="${status.web_url}" target="_blank">View in GitLab</a>` : ''}
+                ${status.status === 'success' ? '✅' : status.status === 'failed' ? '❌' : '⏳'}
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress" style="width: ${status.progress}%"></div>
+                </div>
+            </div>
+        `;
     }
 });

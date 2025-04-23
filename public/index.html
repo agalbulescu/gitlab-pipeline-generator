@@ -26,95 +26,95 @@
                 <button id="logout-btn">Logout</button>
             </div>
         </div>
+        <div id="app-content" style="display: none;">
+            <header>
+                <h1>GitLab Pipeline Generator</h1>
+                <button id="edit-games-button" onclick="toggleEditGames()">EDIT GAMES LIST</button>
+                <div class="mode-toggle" onclick="toggleMode()">🌓</div>
+            </header>
 
-        <header>
-            <h1>GitLab Pipeline Generator</h1>
-            <button id="edit-games-button" onclick="toggleEditGames()">EDIT GAMES LIST</button>
-            <div class="mode-toggle" onclick="toggleMode()">🌓</div>
-        </header>
-
-        <div class="sub-title">Actions for All Games</div>
-        <div class="buttons-container">
-            <div class="left-buttons">
-                <button onclick="toggleButton(this)">ALL</button>
-                <button onclick="toggleButton(this)">PAYOUTS</button>
-                <button onclick="toggleButton(this)">UI</button>
-                <button onclick="toggleButton(this)">ANALYTICS</button>
-                <button onclick="toggleButton(this)">SMAPP</button>
-                <button onclick="toggleButton(this)">DESKTOP</button>
-                <button onclick="toggleButton(this)">MOBILE</button>
-                <button onclick="clearButtons()">CLEAR</button>
+            <div class="sub-title">Actions for All Games</div>
+            <div class="buttons-container">
+                <div class="left-buttons">
+                    <button onclick="toggleButton(this)">ALL</button>
+                    <button onclick="toggleButton(this)">PAYOUTS</button>
+                    <button onclick="toggleButton(this)">UI</button>
+                    <button onclick="toggleButton(this)">ANALYTICS</button>
+                    <button onclick="toggleButton(this)">SMAPP</button>
+                    <button onclick="toggleButton(this)">DESKTOP</button>
+                    <button onclick="toggleButton(this)">MOBILE</button>
+                    <button onclick="clearButtons()">CLEAR</button>
+                </div>
+                <!-- <button id="generate-btn" disabled>Generate Pipeline</button> -->
             </div>
-            <!-- <button id="generate-btn" disabled>Generate Pipeline</button> -->
-        </div>
 
-        <div id="edit-games">
-            <h3>Games List</h3>
-            <p>*any changes will be lost on page reload</p>
-            <div id="games-list-container">
-                <!-- Default games will be added here dynamically -->
+            <div id="edit-games">
+                <h3>Games List</h3>
+                <p>*any changes will be lost on page reload</p>
+                <div id="games-list-container">
+                    <!-- Default games will be added here dynamically -->
+                </div>
+                <button id="add-game-button" onclick="addGameEntry()">ADD GAME</button>
+                <button id="save-games-button" onclick="saveGamesList()">SAVE GAMES LIST</button>
             </div>
-            <button id="add-game-button" onclick="addGameEntry()">ADD GAME</button>
-            <button id="save-games-button" onclick="saveGamesList()">SAVE GAMES LIST</button>
-        </div>
 
-        <div class="sub-title-2">Actions per Game</div>
-        <table>
-            <thead>
-                <tr>
-                    <th rowspan="2">RUN</th>
-                    <th id="game-name-header" rowspan="2">Game Name</th>
-                    <th colspan="4">Desktop & Mobile</th>
-                    <th colspan="4">Desktop</th>
-                    <th colspan="3">Mobile</th>
-                </tr>
-                <tr>
-                    <th>All</th>
-                    <th>Payouts</th>
-                    <th>UI</th>
-                    <th>Analytics</th>
-                    <th>SMApp</th>
-                    <th>Desktop Payouts</th>
-                    <th>Desktop UI</th>
-                    <th>Desktop Analytics</th>
-                    <th>Mobile Payouts</th>
-                    <th>Mobile UI</th>
-                    <th>Mobile Analytics</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-                <!-- Rows will be generated here -->
-            </tbody>
-        </table>
+            <div class="sub-title-2">Actions per Game</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">RUN</th>
+                        <th id="game-name-header" rowspan="2">Game Name</th>
+                        <th colspan="4">Desktop & Mobile</th>
+                        <th colspan="4">Desktop</th>
+                        <th colspan="3">Mobile</th>
+                    </tr>
+                    <tr>
+                        <th>All</th>
+                        <th>Payouts</th>
+                        <th>UI</th>
+                        <th>Analytics</th>
+                        <th>SMApp</th>
+                        <th>Desktop Payouts</th>
+                        <th>Desktop UI</th>
+                        <th>Desktop Analytics</th>
+                        <th>Mobile Payouts</th>
+                        <th>Mobile UI</th>
+                        <th>Mobile Analytics</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows will be generated here -->
+                </tbody>
+            </table>
 
-        <!-- Moved Copy Button and Textarea -->
-        <div class="output-container">
-            <textarea id="output-text" readonly></textarea>
-            <!-- <button class="copy-button" onclick="copyText()">COPY</button> -->
-            <button id="generate-btn" disabled>Generate Pipeline</button>
-        </div>
+            <!-- Moved Copy Button and Textarea -->
+            <div class="output-container">
+                <textarea id="output-text" readonly></textarea>
+                <!-- <button class="copy-button" onclick="copyText()">COPY</button> -->
+                <button id="generate-btn" disabled>Generate Pipeline</button>
+            </div>
 
-        <!-- Moved Generate Pipeline Button -->
-        <div class="pipeline-controls">
-            <div class="sub-title">Select on which branch to run</div>
-            <div id="branch-load-error" class="error-message" style="display: none;"></div>
-            <div id="pipeline-trigger-section" style="display: none;">
-                <div class="branch-selection-container">
-                    <select id="branch-selector" class="branch-selector"></select>
-                    <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
+            <!-- Moved Generate Pipeline Button -->
+            <div class="pipeline-controls">
+                <div class="sub-title">Select on which branch to run</div>
+                <div id="branch-load-error" class="error-message" style="display: none;"></div>
+                <div id="pipeline-trigger-section" style="display: none;">
+                    <div class="branch-selection-container">
+                        <select id="branch-selector" class="branch-selector"></select>
+                        <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
+                    </div>
                 </div>
             </div>
+
+            <!-- Expanded Pipeline Info Section -->
+            <section id="pipeline-info">
+                <h2>Pipeline Information</h2>
+                <div id="pipeline-status" class="placeholder">
+                    No pipeline generated or triggered yet.
+                </div>
+            </section>
         </div>
-
-        <!-- Expanded Pipeline Info Section -->
-        <section id="pipeline-info">
-            <h2>Pipeline Information</h2>
-            <div id="pipeline-status" class="placeholder">
-                No pipeline generated or triggered yet.
-            </div>
-        </section>
     </div>
-
     <script src="/js/app.js"></script>
 </body>
 </html>

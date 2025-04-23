@@ -1,17 +1,12 @@
-/* Base styles from our original app */
-body {
+/* Base styles */
+body, body.light-mode {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    background-color: #1f1f1f;
-    color: #ffffff;
 }
-
-body.light-mode {
-    background-color: #ffffff;
-    color: #000000;
-}
+body { background-color: #1f1f1f; color: #fff; }
+body.light-mode { background-color: #fff; color: #000; }
 
 .container {
     max-width: 1600px;
@@ -19,6 +14,7 @@ body.light-mode {
     padding: 20px;
 }
 
+/* Header styles */
 header {
     display: flex;
     justify-content: space-between;
@@ -26,24 +22,12 @@ header {
     padding: 10px 20px;
     border-bottom: 1px solid #444;
 }
-
-header.light-mode {
-    background-color: #ffffff;
-    color: #000000;
-}
-
-header.light-mode button {
-    background-color: #ccc !important;
-    color: #000 !important;
-}
-
-header.light-mode button:hover {
-    background-color: #45a049 !important;
-}
+header.light-mode { background-color: #fff; color: #000; }
+header.light-mode button { background-color: #ccc !important; color: #000 !important; }
+header.light-mode button:hover { background-color: #45a049 !important; }
 
 h1 {
-    margin-top: 10px;
-    margin-bottom: 0px;
+    margin: 10px 0 0;
     font-size: 1.5em;
 }
 
@@ -52,26 +36,24 @@ h1 {
     margin-left: 10px;
 }
 
-.sub-title {
-    background-color: #1f1f1f;
+/* Common styles for sub-titles */
+.sub-title, .sub-title-2 {
     padding: 10px 20px;
     font-size: 18px;
     color: #888;
-}
-
-.sub-title.light-mode {
-    background-color: #ffffff;
-}
-
-.buttons-container {
     background-color: #1f1f1f;
+}
+.sub-title.light-mode, .sub-title-2.light-mode { background-color: #fff; }
+
+/* Buttons container */
+.buttons-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0px 20px 10px 20px;
+    padding: 0 20px 10px;
     gap: 20px;
+    background-color: #1f1f1f;
 }
-
 .buttons-container button {
     padding: 10px;
     border: none;
@@ -82,117 +64,55 @@ h1 {
     border-radius: 5px;
     flex-shrink: 0;
 }
+.buttons-container button:hover, 
+.buttons-container button.active { background-color: #4CAF50; }
+.buttons-container.light-mode { background-color: #fff; }
+.buttons-container.light-mode button { background-color: #ccc; color: #000; }
+.buttons-container.light-mode button:hover,
+.buttons-container.light-mode button.active { background-color: #4CAF50; }
 
-.buttons-container button:hover {
-    background-color: #4CAF50;
-}
+.left-buttons { display: flex; gap: 10px; }
 
-.buttons-container button.active {
-    background-color: #4CAF50;
-}
-
-.buttons-container.light-mode {
-    background-color: #ffffff;
-}
-
-.buttons-container.light-mode button {
-    background-color: #ccc;
-    color: #000;
-}
-
-.buttons-container.light-mode button:hover {
-    background-color: #4CAF50;
-}
-
-.buttons-container.light-mode button.active {
-    background-color: #4CAF50;
-}
-
-.left-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.sub-title-2 {
-    background-color: #1f1f1f;
-    padding: 10px 20px;
-    font-size: 18px;
-    color: #888;
-}
-
-.sub-title-2.light-mode {
-    background-color: #ffffff;
-}
-
+/* Table styles */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px !important;
     background-color: #1f1f1f;
-    color: #ffffff;
+    color: #fff;
 }
-
-table.light-mode {
-    background-color: #ffffff;
-    color: #000000;
-}
-
-table thead {
-    background-color: #1f1f1f;
-}
-
-table tbody {
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-}
-
-table thead, table tbody tr {
-    display: table;
-    width: 100%;
-}
+table.light-mode { background-color: #fff; color: #000; }
+table thead { background-color: #1f1f1f; }
+table tbody { max-height: calc(100vh - 200px); overflow-y: auto; }
+table thead, table tbody tr { display: table; width: 100%; }
 
 th, td {
     border: 1px solid #444;
     padding: 8px;
     text-align: center;
 }
-
-th {
-    background-color: #333;
-}
-
-td {
-    background-color: #222;
-    cursor: pointer;
-}
+th { background-color: #333; }
+td { background-color: #222; cursor: pointer; }
+.light-mode th { background-color: #ddd; }
+.light-mode td { background-color: #eee; }
 
 th:not(#game-name-header), td:not(.game-name-cell) {
     width: 82px !important;
     min-width: 82px !important;
     max-width: 82px !important;
 }
-
 #game-name-header, .game-name-cell {
     width: auto;
     min-width: 150px;
 }
 
-.light-mode th {
-    background-color: #ddd;
-}
+/* Selected row */
+.selected-row td { background-color: #444 !important; }
+.light-mode .selected-row td { background-color: #ccc !important; }
 
-.light-mode td {
-    background-color: #eee;
-}
-
-.textbox-container {
-    display: none;
-}
-
-.textbox-container.light-mode {
-    background-color: #ffffff;
-}
-
+/* Textbox and copy button */
+.textbox-container { display: none; }
+.textbox-container.light-mode { background-color: #fff; }
 textarea {
     width: calc(100% - 110px);
     height: 60px;
@@ -203,12 +123,7 @@ textarea {
     border-radius: 5px;
     resize: vertical;
 }
-
-.light-mode textarea {
-    background-color: #eee;
-    color: #000;
-}
-
+.light-mode textarea { background-color: #eee; color: #000; }
 .copy-button {
     background-color: #4CAF50;
     color: #fff;
@@ -221,40 +136,20 @@ textarea {
     flex-shrink: 0;
 }
 
-.selected-row td {
-    background-color: #444 !important;
-}
-
-.light-mode .selected-row td {
-    background-color: #ccc !important;
-}
-
+/* Edit games section */
 #edit-games {
-    margin: 20px auto 40px auto;
+    margin: 20px auto 40px;
     max-width: 800px;
     padding: 10px;
     background-color: #1f1f1f;
     display: none;
 }
-
-#edit-games.light-mode {
-    background-color: #ffffff;
-}
-
-#edit-games h3 {
-    margin: 0 0 10px 0;
-    font-size: 18px;
-}
-
-#edit-games p {
-    margin: 0 0 30px 0;
-    font-size: 12px;
-    color: #888;
-}
+#edit-games.light-mode { background-color: #fff; }
+#edit-games h3 { margin: 0 0 10px; font-size: 18px; }
+#edit-games p { margin: 0 0 30px; font-size: 12px; color: #888; }
 
 #edit-games-button {
-    margin-right: 20px;
-    margin-left: auto;
+    margin: 0 20px 0 auto;
     padding: 8px 16px;
     background-color: #333;
     color: #fff;
@@ -263,22 +158,14 @@ textarea {
     cursor: pointer;
     font-weight: 600;
 }
-
-#edit-games-button:hover {
-    background-color: #45a049;
-}
-
-#edit-games-button.active {
-    background-color: #4CAF50 !important;
-    color: #fff !important;
-}
+#edit-games-button:hover { background-color: #45a049; }
+#edit-games-button.active { background-color: #4CAF50 !important; color: #fff !important; }
 
 .game-entry {
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
 }
-
 .game-entry input {
     flex: 1;
     padding: 8px;
@@ -287,13 +174,7 @@ textarea {
     background-color: #333;
     color: #fff;
 }
-
-.light-mode .game-entry input {
-    background-color: #eee;
-    color: #000;
-    border-color: #ccc;
-}
-
+.light-mode .game-entry input { background-color: #eee; color: #000; border-color: #ccc; }
 .game-entry button {
     background-color: #ff4444;
     color: #fff;
@@ -304,9 +185,7 @@ textarea {
     cursor: pointer;
 }
 
-#games-list-container {
-    margin-bottom: 30px;
-}
+#games-list-container { margin-bottom: 30px; }
 
 #add-game-button, #save-games-button {
     padding: 8px 16px;
@@ -318,24 +197,16 @@ textarea {
     border-radius: 5px;
     cursor: pointer;
 }
+#add-game-button:hover, #save-games-button:hover { background-color: #45a049; }
 
-#add-game-button:hover, #save-games-button:hover {
-    background-color: #45a049;
-}
-
+/* Toggle switch */
 .switch {
     position: relative;
     display: inline-block;
     width: 45px;
     height: 25px;
 }
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
+.switch input { opacity: 0; width: 0; height: 0; }
 .slider {
     position: absolute;
     cursor: pointer;
@@ -346,11 +217,7 @@ textarea {
     background-color: #696969;
     transition: 0.4s;
 }
-
-.light-mode .slider {
-    background-color: #aaaaaa;
-}
-
+.light-mode .slider { background-color: #aaa; }
 .slider:before {
     position: absolute;
     content: "";
@@ -361,28 +228,13 @@ textarea {
     background-color: white;
     transition: 0.4s;
 }
+input:checked + .slider { background-color: #4CAF50; }
+input:focus + .slider { box-shadow: 0 0 1px #4CAF50; }
+input:checked + .slider:before { transform: translateX(20px); }
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
 
-input:checked + .slider {
-    background-color: #4CAF50;
-}
-
-input:focus + .slider {
-    box-shadow: 0 0 1px #4CAF50;
-}
-
-input:checked + .slider:before {
-    transform: translateX(20px);
-}
-
-.slider.round {
-    border-radius: 34px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
-/* Pipeline controls and status from original app */
+/* Pipeline controls and status */
 #pipeline-info {
     margin: 20px;
     padding: 20px;
@@ -392,44 +244,28 @@ input:checked + .slider:before {
     overflow: hidden;
     transition: max-height 0.3s ease;
 }
-
-body.light-mode #pipeline-info {
-    background-color: #eee;
-}
-
-#pipeline-info.expanded {
-    max-height: 1000px;
-}
+body.light-mode #pipeline-info { background-color: #eee; }
+#pipeline-info.expanded { max-height: 1000px; }
 
 #pipeline-status {
     padding: 15px;
     white-space: pre-wrap;
     word-wrap: break-word;
-}
-
-#pipeline-status {
     min-height: 100px;
-    padding: 15px;
     border-radius: 4px;
 }
 
+/* Status messages */
 .status-message {
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 4px;
 }
-
 .status-message.success {
     background-color: #dff0d8;
     color: #3c763d;
     border: 1px solid #d6e9c6;
 }
-
-select[disabled] {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
 .status-message.error {
     background-color: #ffebee;
     border-left: 4px solid #f44336;
@@ -437,7 +273,6 @@ select[disabled] {
     margin: 10px 0;
     border-radius: 4px;
 }
-
 .status-message.info {
     background-color: #d9edf7;
     color: #31708f;
@@ -453,23 +288,19 @@ select[disabled] {
     max-height: 200px;
     overflow-y: auto;
 }
-
 .pipeline-preview pre {
     margin: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
     color: #fff;
 }
-
 .light-mode .pipeline-preview {
     background-color: #f8f9fa;
     border-color: #ddd;
 }
+.light-mode .pipeline-preview pre { color: #000; }
 
-.light-mode .pipeline-preview pre {
-    color: #000;
-}
-
+/* Progress bar */
 .progress-bar {
     width: 100%;
     height: 20px;
@@ -478,29 +309,24 @@ select[disabled] {
     margin: 10px 0;
     overflow: hidden;
 }
-
 .progress-bar .progress {
     height: 100%;
     background-color: #2196F3;
     transition: width 0.3s ease;
 }
-
 .progress-text {
     font-size: 0.9em;
     color: #666;
 }
 
-/* User section styles from original app */
+/* User section */
 #user-section {
     display: flex;
     justify-content: flex-end;
     padding: 10px 20px;
     background-color: #1f1f1f;
 }
-
-body.light-mode #user-section {
-    background-color: #ffffff;
-}
+body.light-mode #user-section { background-color: #fff; }
 
 #user-section #login-form,
 #user-section #logged-in-user {
@@ -509,12 +335,7 @@ body.light-mode #user-section {
     align-items: center;
 }
 
-#login-form, #logged-in-user {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
+/* Form elements */
 input, select, button {
     padding: 8px 12px;
     border: 1px solid #444;
@@ -522,7 +343,6 @@ input, select, button {
     background-color: #333;
     color: #fff;
 }
-
 .light-mode input, 
 .light-mode select, 
 .light-mode button:not(.copy-button) {
@@ -538,23 +358,19 @@ button {
     cursor: pointer;
     transition: background-color 0.3s;
 }
-
-button:hover {
-    background-color: #45a049;
-}
-
+button:hover { background-color: #45a049; }
 button:disabled {
-    background-color: #cccccc;
+    background-color: #ccc;
     cursor: not-allowed;
 }
 
+/* Output container */
 .output-container {
     margin: 20px;
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
-
 .output-container textarea {
     width: calc(100% - 20px);
     min-height: 80px;
@@ -565,13 +381,11 @@ button:disabled {
     border-radius: 4px;
     resize: vertical;
 }
-
 .light-mode .output-container textarea {
     background-color: #eee;
     color: #000;
     border-color: #ccc;
 }
-
 .output-container .copy-button {
     align-self: flex-end;
     padding: 8px 16px;
@@ -584,7 +398,7 @@ button:disabled {
     display: none;
 }
 
-/* Add these new styles */
+/* Pipeline YML */
 .pipeline-full-yml {
     max-height: 60vh;
     overflow-y: auto;
@@ -594,7 +408,6 @@ button:disabled {
     margin-top: 15px;
     position: relative;
 }
-
 .pipeline-full-yml pre {
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -603,7 +416,6 @@ button:disabled {
     font-size: 13px;
     line-height: 1.4;
 }
-
 .copy-yml-button {
     position: absolute;
     top: 10px;
@@ -616,17 +428,13 @@ button:disabled {
     cursor: pointer;
     font-size: 12px;
 }
-
-.copy-yml-button:hover {
-    background: #45a049;
-}
-
+.copy-yml-button:hover { background: #45a049; }
 .light-mode .pipeline-full-yml {
     background-color: #f5f5f5;
     border: 1px solid #ddd;
 }
 
-/* Add branch selection styles */
+/* Branch selection */
 .branch-selection-container {
     display: flex;
     flex-direction: column;
@@ -635,7 +443,6 @@ button:disabled {
     width: 100%;
     max-width: 600px;
 }
-
 .branch-selector {
     width: 100%;
     padding: 10px;
@@ -644,13 +451,11 @@ button:disabled {
     color: white;
     border: 1px solid #444;
 }
-
 .light-mode .branch-selector {
     background-color: #eee;
     color: #333;
     border-color: #ccc;
 }
-
 .trigger-button {
     padding: 12px 20px;
     background-color: #4CAF50;
@@ -662,11 +467,9 @@ button:disabled {
     width: 100%;
     max-width: 200px;
     align-self: flex-end;
+    font-size: large;
 }
-
-.trigger-button:hover {
-    background-color: #45a049;
-}
+.trigger-button:hover { background-color: #45a049; }
 
 /* SlimSelect Custom Styling */
 .ss-main {
@@ -676,37 +479,28 @@ button:disabled {
     color: #fff !important;
     min-height: 38px !important;
 }
-
-.ss-main .ss-arrow path {
-    stroke: #fff !important;
-}
-
+.ss-main .ss-arrow path { stroke: #fff !important; }
 .ss-content {
     background-color: #333 !important;
     border: 1px solid #555 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-    /* width: 100% !important; */
 }
-
 .ss-list {
-    display: block !important; /* Single column */
+    display: block !important;
     max-height: 60vh !important;
     overflow-y: auto !important;
 }
-
 .ss-option {
     color: #fff !important;
     padding: 8px 12px !important;
-    white-space: normal !important; /* Allow wrapping */
-    word-break: break-all !important; /* Break long branch names */
+    white-space: normal !important;
+    word-break: break-all !important;
 }
-
 .ss-option:hover, 
 .ss-option.ss-highlighted {
     background-color: #4CAF50 !important;
     color: white !important;
 }
-
 .ss-search input {
     background-color: #222 !important;
     color: #fff !important;
@@ -715,33 +509,23 @@ button:disabled {
     margin: 5px !important;
     width: calc(100% - 24px) !important;
 }
-
-/* Selected item styling */
 .ss-main .ss-single-selected {
     color: #fff !important;
     padding: 6px 12px !important;
 }
 
-/* Light mode adjustments */
+/* Light mode adjustments for SlimSelect */
 .light-mode .ss-main {
     background-color: #fff !important;
     color: #333 !important;
     border-color: #ddd !important;
 }
-
-.light-mode .ss-main .ss-arrow path {
-    stroke: #333 !important;
-}
-
+.light-mode .ss-main .ss-arrow path { stroke: #333 !important; }
 .light-mode .ss-content {
     background-color: #fff !important;
     border-color: #ddd !important;
 }
-
-.light-mode .ss-option {
-    color: #333 !important;
-}
-
+.light-mode .ss-option { color: #333 !important; }
 .light-mode .ss-search input {
     background-color: #f5f5f5 !important;
     color: #333 !important;
@@ -752,65 +536,6 @@ button:disabled {
     color: #ff4444;
     margin-top: 10px;
     font-size: 14px;
-}
-
-/* Status Message Styles */
-.status-message {
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 4px;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.status-message.success {
-    background-color: #e8f5e9;
-    border-left: 4px solid #4CAF50;
-    color: #2e7d32;
-}
-
-.status-message.error {
-    background-color: #ffebee;
-    border-left: 4px solid #f44336;
-    color: #c62828;
-}
-
-.status-message.info {
-    background-color: #e3f2fd;
-    border-left: 4px solid #2196F3;
-    color: #1565c0;
-}
-
-.status-details {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: rgba(255, 255, 255, 0.5);
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 13px;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-/* Dark mode adjustments */
-.dark-mode .status-message.success {
-    background-color: #1b5e20;
-    color: #a5d6a7;
-}
-
-.dark-mode .status-message.error {
-    background-color: #b71c1c;
-    color: #ffcdd2;
-}
-
-.dark-mode .status-message.info {
-    background-color: #0d47a1;
-    color: #bbdefb;
-}
-
-.dark-mode .status-details {
-    background-color: rgba(0, 0, 0, 0.3);
-    color: #e0e0e0;
 }
 
 /* Loading Spinner */
@@ -825,15 +550,28 @@ button:disabled {
     margin-right: 8px;
     vertical-align: middle;
 }
+.dark-mode .loading-spinner { border-top-color: #fff; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.dark-mode .loading-spinner {
-    border-top-color: #fff;
+#generate-btn { font-size: larger; }
+
+.progress-container {
+    margin: 15px 0;
+    width: 100%;
+}
+.progress-bar {
+    height: 20px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.progress-bar .progress {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-#generate-btn {
-    font-size: larger;
-}
+/* Status message colors */
+.status-message.success { color: #4CAF50; }
+.status-message.failed { color: #f44336; }
+.status-message.running { color: #2196F3; }
+.dark-mode .progress-bar { background-color: #333; }
