@@ -10,6 +10,6 @@ services:
       - GITLAB_PROJECT_ID=123
       - GITLAB_ACCESS_TOKEN=this-is-the-access-token
       - GITLAB_PIPELINE_TRIGGER_TOKEN=this-is-the-trigger-token
-      - PUBLIC_YML_ACCESS_TOKEN=a-very-long-string
+      - GITLAB_PUBLIC_YML_ACCESS_TOKEN=a-very-long-string
     restart: unless-stopped
     network_mode: bridge  # Explicitly using the default bridge network
