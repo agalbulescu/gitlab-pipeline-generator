@@ -1011,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    document.getElementById('trigger-pipeline-btn').addEventListener('click', async () => {
+    document.getElementById('trigger-btn').addEventListener('click', async () => {
         const selectedBranch = slimBranchSelector.selected();
         const selectedGames = document.getElementById('output-text').value;
         
