@@ -13,6 +13,7 @@ COPY . .
 
 # Environment variables (you can pass them via docker-compose or an .env file)
 ENV PORT=${PORT}
+ENV GITLAB_BASE_URL=${GITLAB_BASE_URL}
 ENV GITLAB_API_URL=${GITLAB_API_URL}
 ENV GITLAB_PROJECT_ID=${GITLAB_PROJECT_ID}
 ENV GITLAB_ACCESS_TOKEN=${GITLAB_ACCESS_TOKEN}

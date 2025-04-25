@@ -46,6 +46,7 @@ app.use('/api/protected', (req, res, next) => {
 
 // GitLab API Configuration
 const GITLAB_CONFIG = {
+    BASE_URL: process.env.GITLAB_BASE_URL,
     API_BASE_URL: process.env.GITLAB_API_URL,
     PROJECT_ID: process.env.GITLAB_PROJECT_ID,
     ACCESS_TOKEN: process.env.GITLAB_ACCESS_TOKEN,
@@ -346,7 +347,7 @@ function generatePipelineYml(selectedGames) {
 test_${internalName}:
   id_tokens:
     GITLAB_OIDC_TOKEN:
-      aud: https://gitlab.external.tools.ezugicdn.com
+      aud: ${GITLAB_CONFIG.BASE_URL}
   stage: test
   tags:
     - jenkins-huge
