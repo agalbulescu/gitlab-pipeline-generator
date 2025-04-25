@@ -33,6 +33,22 @@
                 <div class="mode-toggle" onclick="toggleMode()">🌓</div>
             </header>
 
+            <div class="sub-title">Select on which environment to run</div>
+            <div id="env-section">
+                <select id="env-selector">
+                  <option value="FW_STAGE_ENV">Stage</option>
+                  <option value="FW_QA01_ENV">QA01</option>
+                  <option value="FW_QA02_ENV">QA02</option>
+                  <option value="FW_QA03_ENV">QA03</option>
+                  <option value="FW_QA04_ENV">QA04</option>
+                  <option value="FW_QA05_ENV">QA05</option>
+                  <option value="FW_QA06_ENV">QA06</option>
+                  <option value="FW_QA07_ENV">QA07</option>
+                  <option value="FW_QA08_ENV">QA08</option>
+                  <option value="FW_QA09_ENV">QA09</option>
+                </select>
+            </div>
+
             <div class="sub-title">Actions for All Games</div>
             <div class="buttons-container">
                 <div class="left-buttons">
@@ -101,9 +117,9 @@
                 <div id="pipeline-trigger-section" style="display: none;">
                     <div class="branch-selection-container">
                         <select id="branch-selector" class="branch-selector"></select>
-                        <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
                     </div>
                 </div>
+                <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
             </div>
 
             <!-- Expanded Pipeline Info Section -->

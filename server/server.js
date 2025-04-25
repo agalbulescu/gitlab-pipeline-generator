@@ -135,10 +135,18 @@ app.post('/api/logout', (req, res) => {
 
 // Session check middleware (to protect routes)
 app.use((req, res, next) => {
+    // Skip session check for the public GitLab YAML endpoint
+    if (req.path.startsWith('/generated-ci/')) {
+        return next();
+    }
+
+    // Standard session check
     if (!req.session.userId || req.session.expires < Date.now()) {
         return res.status(401).json({ error: 'Session expired or not found' });
     }
-    req.session.expires = Date.now() + SESSION_DURATION; // Extend session expiration
+
+    // Extend session expiration
+    req.session.expires = Date.now() + SESSION_DURATION;
     next();
 });
 
@@ -179,70 +187,30 @@ app.post('/api/generate-pipeline', (req, res) => {
 });
 
 // Secure endpoint to serve the generated pipeline YAML
-app.get('/generated-ci.yml', (req, res) => {
-    const { token } = req.query;
+app.get('/generated-ci/:token.yml', (req, res) => {
+    const { token } = req.params;
+
     if (token !== GITLAB_CONFIG.PUBLIC_YML_ACCESS_TOKEN) {
         return res.status(403).send('Forbidden: Invalid token');
     }
+
+    // Optionally make it look like a file for GitLab or browsers
+    res.setHeader('Content-Disposition', `inline; filename="${token}.yml"`);
+
+    // Set the content type to YAML and send the content
     res.type('text/yaml').send(latestGeneratedPipelineYml);
 });
-
-// Trigger a new pipeline - /pipeline endpoint if GitLab API supports content
-// app.post('/api/trigger-pipeline', async (req, res) => {
-//     try {
-//         const { branch, variables, pipelineContent } = req.body;
-
-//         if (!pipelineContent || typeof pipelineContent !== 'string') {
-//             throw new Error('Invalid pipeline content');
-//         }
-
-//         const encodedContent = Buffer.from(pipelineContent).toString('base64');
-
-//         const response = await fetch(
-//             `${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/pipeline`,
-//             {
-//                 method: 'POST',
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                     'Authorization': `Bearer ${GITLAB_CONFIG.ACCESS_TOKEN}` // Make sure this token has `api` scope
-//                 },
-//                 body: JSON.stringify({
-//                     ref: branch || 'main',
-//                     variables: Object.entries(variables || {}).map(([key, value]) => ({
-//                         key,
-//                         value
-//                     })),
-//                     content: encodedContent
-//                 })
-//             }
-//         );
-
-//         if (!response.ok) {
-//             const errorText = await response.text();
-//             console.error('GitLab API Error:', errorText);
-//             throw new Error(`Failed to trigger pipeline: ${errorText}`);
-//         }
-
-//         const pipelineData = await response.json();
-//         res.json(pipelineData);
-//     } catch (error) {
-//         console.error('Pipeline trigger error:', error);
-//         res.status(500).json({ 
-//             error: error.message,
-//             details: 'Failed to trigger pipeline'
-//         });
-//     }
-// });
 
 // Trigger a new pipeline using trigger token and include
 app.post('/api/trigger-pipeline', async (req, res) => {
     try {
-        const { branch, variables } = req.body;
+        // const { branch, variables } = req.body;
+        const { branch } = req.body;
 
         console.log('Triggering pipeline with:', {
             ref: branch || 'main',
             token: GITLAB_CONFIG.TRIGGER_TOKEN,
-            variables: Object.entries(variables || {}).map(([key, value]) => ({ key, value }))
+            // variables: Object.entries(variables || {}).map(([key, value]) => ({ key, value }))
         });
         
         const response = await fetch(
@@ -255,10 +223,10 @@ app.post('/api/trigger-pipeline', async (req, res) => {
                 body: JSON.stringify({
                     ref: branch || 'main',
                     token: GITLAB_CONFIG.TRIGGER_TOKEN,
-                    variables: Object.entries(variables || {}).map(([key, value]) => ({
-                        key,
-                        value
-                    }))
+                    // variables: Object.entries(variables || {}).map(([key, value]) => ({
+                    //     key,
+                    //     value
+                    // }))
                 })
             }
         );
@@ -346,35 +314,35 @@ app.get('/api/branches', async (req, res) => {
 });
 
 function generatePipelineYml(selectedGames) {
-    // Suite to pytest command mapping
-    const suiteMap = {
-        'all': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
-        'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_payouts',
-        'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_ui',
-        'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_analytics',
-        'smapp': 'tests/${internalName}/desktop/ -k test_smapp',
-        'desktop': 'tests/${internalName}/desktop/',
-        'mobile': 'tests/${internalName}/mobile/',
-        'desktop_payouts': 'tests/${internalName}/desktop/ -k test_payouts',
-        'mobile_payouts': 'tests/${internalName}/mobile/ -k test_payouts',
-        'desktop_ui': 'tests/${internalName}/desktop/ -k test_ui',
-        'mobile_ui': 'tests/${internalName}/mobile/ -k test_ui',
-        'desktop_analytics': 'tests/${internalName}/desktop/ -k test_analytics',
-        'mobile_analytics': 'tests/${internalName}/mobile/ -k test_analytics'
-    };
+  const maxConcurrentGroups = 5; // You can make this configurable
 
-    const testJobs = selectedGames.map(game => {
-        const [gameName, ...suites] = game.split(':');
-        const internalName = gameName.toLowerCase().replace(/\s+/g, '_');
-        const uniqueSuites = [...new Set(suites)]; // Remove duplicates
+  const suiteMap = {
+      'all': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
+      'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_payouts',
+      'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_ui',
+      'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_analytics',
+      'smapp': 'tests/${internalName}/desktop/ -k test_smapp',
+      'desktop': 'tests/${internalName}/desktop/',
+      'mobile': 'tests/${internalName}/mobile/',
+      'desktop_payouts': 'tests/${internalName}/desktop/ -k test_payouts',
+      'mobile_payouts': 'tests/${internalName}/mobile/ -k test_payouts',
+      'desktop_ui': 'tests/${internalName}/desktop/ -k test_ui',
+      'mobile_ui': 'tests/${internalName}/mobile/ -k test_ui',
+      'desktop_analytics': 'tests/${internalName}/desktop/ -k test_analytics',
+      'mobile_analytics': 'tests/${internalName}/mobile/ -k test_analytics'
+  };
 
-        // Generate commands based on the suite map
-        const commands = uniqueSuites.map(suite =>
-            `pytest ${suiteMap[suite].replace(/\$\{internalName\}/g, internalName)} --junitxml=results_${internalName}.xml || true`
-        );
+  const testJobs = selectedGames.map((game, index) => {
+      const [gameName, ...suites] = game.split(':');
+      const internalName = gameName.toLowerCase().replace(/\s+/g, '_');
+      const uniqueSuites = [...new Set(suites)];
+      const commands = uniqueSuites.map(suite =>
+          `pytest ${suiteMap[suite].replace(/\$\{internalName\}/g, internalName)} --junitxml=reports/results_${internalName}.xml || true`
+      );
 
-        // Job template
-        return `
+      const groupId = (index % maxConcurrentGroups) + 1;
+
+      return `
 test_${internalName}:
   id_tokens:
     GITLAB_OIDC_TOKEN:
@@ -383,47 +351,49 @@ test_${internalName}:
   tags:
     - jenkins-huge
   image: escuxezg0/pypipe-debian:latest
-  resource_group: group_1
+  resource_group: group_${groupId}
   script:
     - |
       echo "Running ${gameName} tests"
+      export PYTEST_CACHE_DIR=".pytest_cache_${internalName}"
       ${commands.join('\n')}
+      pytest --last-failed --last-failed-no-failures none --junitxml=reports/rerun_${internalName}.xml || true
   rules:
     - if: '$SELECTED_GAMES =~ /${internalName}:/'
       when: always
   artifacts:
+    untracked: true
     paths:
       - reports/results_${internalName}.xml
+      - reports/rerun_${internalName}.xml
     when: always`;
-    });
+  });
 
-    // Generate dependencies for rerun job
-    const testJobNames = selectedGames.map(game => {
-        const internalName = game.split(':')[0].toLowerCase().replace(/\s+/g, '_');
-        return `test_${internalName}`;
-    });
+  const testJobNames = selectedGames.map(game => {
+      const internalName = game.split(':')[0].toLowerCase().replace(/\s+/g, '_');
+      return `test_${internalName}`;
+  });
 
-    // Main pipeline template
-    return `
+  return `
 variables:
   SELECTED_GAMES: "${selectedGames.join(',')}"
 
 .assume-role: &assume-role
-  - >
-    export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
-    $(aws sts assume-role-with-web-identity
-    --role-arn $AWS_ROLE_ARN
-    --role-session-name "GitLabRunner-$CI_PROJECT_ID-$CI_PIPELINE_ID"
-    --web-identity-token $GITLAB_OIDC_TOKEN
-    --duration-seconds 36000
-    --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
-    --output text))
+- >
+  export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
+  $(aws sts assume-role-with-web-identity
+  --role-arn $AWS_ROLE_ARN
+  --role-session-name "GitLabRunner-$CI_PROJECT_ID-$CI_PIPELINE_ID"
+  --web-identity-token $GITLAB_OIDC_TOKEN
+  --duration-seconds 36000
+  --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
+  --output text))
 
 stages:
-  - notify_pipeline_start
-  - test
-  - rerun_failed
-  - notify_pipeline_end
+- notify_pipeline_start
+- test
+- rerun_failed
+- notify_pipeline_end
 
 notify_pipeline_start:
   stage: notify_pipeline_start
@@ -437,7 +407,7 @@ notify_pipeline_start:
         "icon_emoji": ":gitlab:"
       }' $SLACK_WEBHOOK_URL
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
 
 ${testJobs.join('\n\n')}
 
@@ -445,33 +415,40 @@ rerun_failed_tests:
   stage: rerun_failed
   image: escuxezg0/pypipe-debian:latest
   script:
+    - mkdir -p reports
+    - echo "Extracting failed test names..."
+
+    # Find all failed test node IDs from reports
     - |
-      RESULTS_FILES=$(find . -name "results_*.xml" -not -name "results_rerun.xml" -type f)
-      
-      if [ -z "$RESULTS_FILES" ]; then
-        echo "No test results files found."
-        exit 0
-      fi
-      
-      FAILED_TESTS=""
-      for FILE in $RESULTS_FILES; do
-        TESTS_IN_FILE=$(xmllint --xpath "//testcase[./failure]/@name" "$FILE" 2>/dev/null | sed -E 's/name="([^"]+)"/\\1/g' | tr '\\n' ' ')
-        if [ -n "$TESTS_IN_FILE" ]; then
-          FAILED_TESTS="\${FAILED_TESTS} \${TESTS_IN_FILE}"
-        fi
+      > reports/failed_tests.txt
+      for file in reports/results_*.xml; do
+        internal=$(basename "$file" .xml | cut -d_ -f2-)
+        echo "Processing $file"
+        # Extract file + class + test names
+        xmllint --xpath '//testcase[failure]' "$file" 2>/dev/null | \
+        grep -oP 'classname="\\K[^"]+' | while read -r classname; do
+          grep -oP 'name="\\K[^"]+' "$file" | while read -r name; do
+            echo "$classname::$name" >> reports/failed_tests.txt
+          done
+        done
       done
 
-      if [ -n "$FAILED_TESTS" ]; then
-        echo "Re-running failed tests: $FAILED_TESTS"
-        pytest -k "$FAILED_TESTS" --junitxml=results_rerun.xml || true
+    - echo "Running failed tests only..."
+    - |
+      if [ -s reports/failed_tests.txt ]; then
+        # Convert to -k format: test1 or test2 or ...
+        rerun_expr=$(awk -F:: '{print $2}' reports/failed_tests.txt | paste -sd ' or ' -)
+        pytest -v -k "$rerun_expr" --junitxml=reports/results_rerun.xml || true
       else
-        echo "No failed tests to re-run."
+        echo "No failed tests found. Skipping rerun."
       fi
+
   dependencies:
     - ${testJobNames.join('\n    - ')}
   artifacts:
     paths:
       - reports/results_rerun.xml
+      - reports/failed_tests.txt
     when: always
 
 notify_pipeline_end:
@@ -495,7 +472,7 @@ notify_pipeline_end:
         }' $SLACK_WEBHOOK_URL
       fi
   rules:
-    - if: $CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api"`;
+    - if: $CI_PIPELINE_SOURCE == "trigger"`;
 }
 
 async function startServer(port) {

@@ -636,53 +636,10 @@ function updateOutput() {
     outputText.value = output.slice(0, -1);
 }
 
-// function copyText() {
-//     const outputText = document.getElementById('output-text');
-//     outputText.select();
-//     document.execCommand('copy');
-    
-//     // Optional: Show feedback
-//     const copyButton = document.querySelector('.copy-button');
-//     const originalText = copyButton.textContent;
-//     copyButton.textContent = 'Copied!';
-//     setTimeout(() => {
-//         copyButton.textContent = originalText;
-//     }, 2000);
-// }
+// async function triggerPipeline(branch, selectedGames) {
+async function triggerPipeline(branch) {
 
-// commented out if GitLab API is not available for content passing
-// async function triggerPipeline(branch, selectedGames, pipelineContent) {
-//     try {
-//         const response = await fetch('/api/trigger-pipeline', {
-//             method: 'POST',
-//             credentials: 'include',
-//             headers: {
-//                 'Content-Type': 'application/json'
-//             },
-//             body: JSON.stringify({
-//                 branch,
-//                 variables: {
-//                     SELECTED_GAMES: selectedGames
-//                 },
-//                 pipelineContent
-//             })
-//         });
-
-//         if (!response.ok) {
-//             const error = await response.json();
-//             throw new Error(error.error || 'Failed to trigger pipeline');
-//         }
-
-//         return await response.json();
-//     } catch (error) {
-//         console.error('Pipeline trigger error:', error);
-//         throw error;
-//     }
-// }
-
-async function triggerPipeline(branch, selectedGames) {
-
-    console.log('Triggering with branch:', branch);
+    console.log('Triggering on branch:', branch);
 
     try {
         const response = await fetch('/api/trigger-pipeline', {
@@ -693,9 +650,10 @@ async function triggerPipeline(branch, selectedGames) {
             },
             body: JSON.stringify({
                 branch,
-                variables: {
-                    SELECTED_GAMES: selectedGames
-                }
+                // variables: {
+                //     SELECTED_GAMES: selectedGames,
+                //     ENVIRONMENT: selectedEnvironment
+                // }
             })
         });
 
@@ -767,10 +725,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutBtn = document.getElementById('logout-btn');
     const currentUserSpan = document.getElementById('current-user');
     const generateBtn = document.getElementById('generate-btn');
-    // const triggerSection = document.getElementById('pipeline-trigger-section');
-    // const triggerBtn = document.getElementById('trigger-btn');
-    // const branchSelector = document.getElementById('branch-selector');
-    // const pipelineStatus = document.getElementById('pipeline-status');
 
     // Store generated pipeline
     let generatedPipeline = null;
@@ -891,6 +845,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 5000);
     }
 
+    const slimEnvSelector = new SlimSelect({
+        select: '#env-selector'
+    });
+
     let slimBranchSelector;
 
     // Add these new functions to handle GitLab API operations
@@ -966,6 +924,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function generatePipeline() {
+        const selectedEnv = slimEnvSelector.getSelected()[0];
         const outputText = document.getElementById('output-text').value;
         if (!outputText) {
             showPipelineStatus('Please select at least one game to test', 'error');
@@ -1012,8 +971,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('trigger-btn').addEventListener('click', async () => {
-        const selectedBranch = slimBranchSelector.selected();
-        const selectedGames = document.getElementById('output-text').value;
+
+        const selectedBranch = slimBranchSelector.getSelected()[0];
+        // const selectedGames = document.getElementById('output-text').value;
         
         if (!generatedPipeline) {
             showError('No pipeline generated to trigger');
@@ -1022,21 +982,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         try {
             showPipelineStatus(`Triggering pipeline on branch: ${selectedBranch}`);
-            // comment out if GitLab API is not available for content passing
-            // const pipelineData = await triggerPipeline(selectedBranch, selectedGames, generatedPipeline);
-            const pipelineData = await triggerPipeline(selectedBranch, selectedGames);
+
+            // const pipelineData = await triggerPipeline(selectedBranch, selectedGames);
+            const pipelineData = await triggerPipeline(selectedBranch);
     
-            showPipelineStatus(`
-                <div class="status-message success">
-                    Pipeline triggered successfully! ID: ${pipelineData.id}
-                </div>
-                <div class="pipeline-progress">
-                    <div class="progress-bar">
-                        <div class="progress" style="width: 0%"></div>
-                    </div>
-                    <div class="progress-text">Status: ${pipelineData.status}</div>
-                </div>
-            `);
+            showPipelineStatus(`Pipeline triggered successfully! ID: ${pipelineData.id}`);
     
             // Start polling
             pollPipelineStatus(pipelineData.id);
@@ -1072,42 +1022,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         pipelineStatus.appendChild(messageDiv);
     }
 
-    // async function triggerPipeline() {
-    //     try {
-    //         const branch = document.getElementById('branch-selector').value;
-    //         const pipelineYml = generatedPipeline;
-            
-    //         showPipelineStatus(`Triggering pipeline on ${branch}...`, 'info');
-            
-    //         const response = await fetch('/api/trigger-pipeline', {
-    //             method: 'POST',
-    //             credentials: 'include',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify({
-    //                 branch: branch,
-    //                 pipelineContent: pipelineYml,
-    //                 variables: {
-    //                     SELECTED_GAMES: document.getElementById('output-text').value
-    //                 }
-    //             })
-    //         });
-    
-    //         const data = await response.json();
-    //         showPipelineStatus(
-    //             `Pipeline triggered! ID: ${data.id}`,
-    //             'success',
-    //             `View pipeline: ${data.web_url}`
-    //         );
-    //     } catch (error) {
-    //         showPipelineStatus(
-    //             `Trigger failed: ${error.message}`,
-    //             'error'
-    //         );
-    //     }
-    // }
-
     async function pollPipelineStatus(pipelineId) {
         const interval = setInterval(async () => {
             try {
@@ -1128,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Polling error:', error);
                 showPipelineStatus('Pipeline status updates stopped', 'error');
             }
-        }, 5000); // Poll every 5 seconds
+        }, 10000); // Poll every 10 seconds
     }
     
     function updatePipelineStatusDisplay(status) {
