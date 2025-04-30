@@ -6,11 +6,31 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=yourSecretPassword
+      - DATABASE_URL=postgres://postgres:postgres@pypipe-db:5432/pypipe
       - GITLAB_BASE_URL=https://gitlab.mydomain.com
       - GITLAB_API_URL=https://gitlab.mydomain.com/api/v4
       - GITLAB_PROJECT_ID=123
       - GITLAB_ACCESS_TOKEN=this-is-the-access-token
       - GITLAB_PIPELINE_TRIGGER_TOKEN=this-is-the-trigger-token
       - GITLAB_PUBLIC_YML_ACCESS_TOKEN=a-very-long-string
+    depends_on:
+      - pypipe-db
     restart: unless-stopped
-    network_mode: bridge  # Explicitly using the default bridge network
+
+  db:
+    image: postgres:15
+    container_name: pypipe-db
+    restart: always
+    environment:
+      POSTGRES_DB: pypipe
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

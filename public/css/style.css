@@ -588,3 +588,75 @@ button:disabled {
     margin: 0px 20px 20px;
     max-width: 600px;
   }
+ 
+#test-artifacts {
+    margin-top: 30px;
+    padding: 10px;
+    border-top: 1px solid #444;
+}
+
+.job-artifacts {
+    margin-bottom: 30px;
+    padding: 10px;
+    background-color: #292929;
+    border-radius: 6px;
+    border: 1px solid #444;
+}
+.job-artifacts h4 {
+    margin-bottom: 10px;
+    color: #4CAF50;
+}
+.artifact-summary {
+    margin-bottom: 10px;
+    padding: 10px;
+    background-color: #1e1e1e;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #eee;
+}
+.light-mode .artifact-summary {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #ccc;
+}
+
+.pipeline-summary {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: white;
+}
+.light-mode .pipeline-summary {
+    background-color: #f8f8f8;
+    color: black;
+    border-color: #ddd;
+}
+
+.chart-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+canvas.test-summary-chart {
+    max-width: 600px;
+    height: auto;
+}
+
+#pipeline-search-section {
+    background: #282828;
+    padding: 20px;
+    border-radius: 6px;
+}
+body.light-mode #pipeline-search-section {
+    background: #f0f0f0;
+}
+#pipeline-search-section input {
+    padding: 10px;
+    width: 250px;
+    margin-right: 10px;
+}
+#search-results {
+    margin-top: 20px;
+}

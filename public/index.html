@@ -7,16 +7,15 @@
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select@2.8.0/dist/slimselect.min.css">
     <script src="https://cdn.jsdelivr.net/npm/slim-select@2.8.0/dist/slimselect.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 <body class="dark-mode">
     <div class="container">
         <!-- User Section moved above title -->
         <div id="user-section">
             <div id="login-form">
-                <select id="username">
-                    <option value="">Select User</option>
-                    <!-- Will be populated by JavaScript -->
-                </select>
+                <input type="text" id="username" placeholder="Username" required>
                 <input type="password" id="password" placeholder="Password" required>
                 <button id="login-btn">Login</button>
                 <div id="login-error" style="color: red; display: none;"></div>
@@ -24,6 +23,14 @@
             <div id="logged-in-user" style="display: none;">
                 <span id="current-user"></span>
                 <button id="logout-btn">Logout</button>
+            </div>
+            <div id="admin-create-user" style="display:none; margin-top: 30px;">
+                <h3>Create New User (Admin Only)</h3>
+                <input id="new-username" placeholder="Username" />
+                <input id="new-password" placeholder="Password" type="password" />
+                <input id="new-name" placeholder="Full Name" />
+                <button id="create-user-btn">Create User</button>
+                <div id="create-user-msg"></div>
             </div>
         </div>
         <div id="app-content" style="display: none;">
@@ -122,12 +129,20 @@
                 <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
             </div>
 
+            <div id="pipeline-search-section" style="margin: 30px 20px;">
+                <h3>Search Past Pipeline or Job</h3>
+                <input type="text" id="search-id" placeholder="Enter Pipeline ID or Job ID" />
+                <button id="search-btn">Search</button>
+                <div id="search-results"></div>
+            </div>
+
             <!-- Expanded Pipeline Info Section -->
             <section id="pipeline-info">
                 <h2>Pipeline Information</h2>
                 <div id="pipeline-status" class="placeholder">
                     No pipeline generated or triggered yet.
                 </div>
+                <div id="pipeline-summary-container"></div>
             </section>
         </div>
     </div>

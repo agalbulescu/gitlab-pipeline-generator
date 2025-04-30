@@ -636,6 +636,42 @@ function updateOutput() {
     outputText.value = output.slice(0, -1);
 }
 
+function renderTestSummaryChart(containerId, summary, jobName) {
+    const canvas = document.createElement('canvas');
+    canvas.id = `${containerId}-chart`;
+    canvas.style.maxWidth = '500px';
+    canvas.style.marginTop = '15px';
+
+    const wrapper = document.getElementById(containerId);
+    wrapper.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Passed', 'Failed', 'Skipped'],
+            datasets: [{
+                label: `Test Results - ${jobName}`,
+                data: [summary.passed, summary.failed, summary.skipped],
+                backgroundColor: ['#4CAF50', '#f44336', '#FF9800']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: `Results Summary for ${jobName}`
+                }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
 // async function triggerPipeline(branch, selectedGames) {
 async function triggerPipeline(branch) {
 
@@ -736,7 +772,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateTable();
 
     // Event listeners
-    await loadUsers();
+    // await loadUsers();
+
+    document.getElementById('create-user-btn').addEventListener('click', async () => {
+        const username = document.getElementById('new-username').value.trim();
+        const password = document.getElementById('new-password').value.trim();
+        const name = document.getElementById('new-name').value.trim();
+    
+        if (!username || !password || !name) {
+            return document.getElementById('create-user-msg').textContent = 'All fields required';
+        }
+    
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ username, password, name })
+            });
+    
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+    
+            document.getElementById('create-user-msg').textContent = `✅ Created user: ${data.user.name}`;
+        } catch (err) {
+            document.getElementById('create-user-msg').textContent = `❌ ${err.message}`;
+        }
+    });
     
     // Check for existing session
     const user = await checkPersistentSession();
@@ -773,25 +835,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Load users on page load
-    async function loadUsers() {
-        try {
-            const response = await fetch('/api/users', {
-                method: 'GET',
-                credentials: 'include' // 👈 important!
-            });
-            if (!response.ok) throw new Error('Failed to load users');
-            const users = await response.json();
+    // async function loadUsers() {
+    //     try {
+    //         const response = await fetch('/api/users', {
+    //             method: 'GET',
+    //             credentials: 'include' // 👈 important!
+    //         });
+    //         if (!response.ok) throw new Error('Failed to load users');
+    //         const users = await response.json();
             
-            // Populate dropdown
-            usernameSelect.innerHTML = '<option value="">Select User</option>' +
-                users.map(user => 
-                    `<option value="${user.username}">${user.name}</option>`
-                ).join('');
-        } catch (error) {
-            console.error('Error loading users:', error);
-            showError('Failed to load user list');
-        }
-    }
+    //         // Populate dropdown
+    //         usernameSelect.innerHTML = '<option value="">Select User</option>' +
+    //             users.map(user => 
+    //                 `<option value="${user.username}">${user.name}</option>`
+    //             ).join('');
+    //     } catch (error) {
+    //         console.error('Error loading users:', error);
+    //         showError('Failed to load user list');
+    //     }
+    // }
 
     // Handle login
     async function handleLogin() {
@@ -817,6 +879,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // UI state functions
     function showLoggedInState(user) {
+        if (user.isAdmin) {
+            document.getElementById('admin-create-user').style.display = 'block';
+        }
         loginForm.style.display = 'none';
         loggedInUser.style.display = 'flex';
         currentUserSpan.textContent = `Logged in as: ${user.name}`;
@@ -834,6 +899,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('generate-btn').disabled = true;
         document.getElementById('pipeline-trigger-section').style.display = 'none';
         document.getElementById('app-content').style.display = 'none'; // 👈 hide the main UI
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
     }
 
     function showError(message) {
@@ -940,7 +1007,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ selectedGames: outputText.split(',') })
+                body: JSON.stringify({ 
+                    selectedGames: outputText.split(','), 
+                    environment: selectedEnv 
+                  })
             });
     
             if (!response.ok) {
@@ -1034,9 +1104,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Stop polling if pipeline completes
                 if (['success', 'failed', 'canceled'].includes(status.status)) {
                     clearInterval(interval);
-                    // Optional: Refresh status one final time
-                    setTimeout(() => updatePipelineStatusDisplay(status), 1000);
+                
+                    // Refresh UI one last time
+                    setTimeout(() => {
+                        updatePipelineStatusDisplay(status);
+                        loadAndDisplayArtifacts(status.jobs); // 🔥 Load the results
+                    }, 1000);
                 }
+                
             } catch (error) {
                 clearInterval(interval);
                 console.error('Polling error:', error);
@@ -1078,4 +1153,141 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
     }
+
+    async function loadAndDisplayArtifacts(jobs) {
+        const infoContainer = document.getElementById('pipeline-info');
+        const existing = document.getElementById('test-artifacts');
+        if (existing) existing.remove();
+    
+        const resultsWrapper = document.createElement('div');
+        resultsWrapper.id = 'test-artifacts';
+    
+        for (const job of jobs) {
+            if (!['success', 'failed'].includes(job.status)) continue;
+    
+            const response = await fetch(`/api/pipeline-artifacts/${job.id}`);
+            if (!response.ok) continue;
+    
+            const { artifacts } = await response.json();
+    
+            const jobBox = document.createElement('div');
+            jobBox.classList.add('job-artifacts');
+    
+            const title = document.createElement('h4');
+            title.textContent = `Job: ${job.name}`;
+            jobBox.appendChild(title);
+    
+            for (const [filename, xmlContent] of Object.entries(artifacts)) {
+                const summary = parseJUnitXmlSummary(xmlContent);
+                const summaryBox = document.createElement('div');
+                summaryBox.className = 'artifact-summary';
+    
+                const chartContainerId = `${job.name}-${filename}-chart-container`.replace(/[^a-zA-Z0-9-_]/g, '_');
+                summaryBox.id = chartContainerId;
+    
+                summaryBox.innerHTML = `
+                    <div><strong>${filename}</strong></div>
+                    <div>Total: ${summary.tests}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                    <div>Duration: ${summary.time}s</div>
+                    ${
+                        summary.failures.length > 0
+                            ? `<ul style="margin-top: 8px;">${summary.failures.map(f => `<li>${f}</li>`).join('')}</ul>`
+                            : '<em style="color:gray;">No failures</em>'
+                    }
+                `;
+    
+                // Append summary and render chart
+                jobBox.appendChild(summaryBox);
+                renderTestSummaryChart(chartContainerId, summary, job.name);
+    
+                // Raw XML toggle
+                const toggle = document.createElement('details');
+                toggle.style.marginTop = '8px';
+                const summaryEl = document.createElement('summary');
+                summaryEl.textContent = 'View raw XML';
+                const pre = document.createElement('pre');
+                pre.textContent = xmlContent;
+                pre.style.maxHeight = '250px';
+                pre.style.overflowY = 'auto';
+                pre.style.backgroundColor = '#1e1e1e';
+                pre.style.color = '#ccc';
+                pre.style.padding = '10px';
+                pre.style.border = '1px solid #444';
+    
+                toggle.appendChild(summaryEl);
+                toggle.appendChild(pre);
+    
+                jobBox.appendChild(toggle);
+            }
+    
+            resultsWrapper.appendChild(jobBox);
+        }
+    
+        infoContainer.appendChild(resultsWrapper);
+    }    
+
+    function parseJUnitXmlSummary(xmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlString, 'application/xml');
+    
+        const testsuite = doc.querySelector('testsuite');
+        const tests = parseInt(testsuite?.getAttribute('tests') || '0');
+        const failures = parseInt(testsuite?.getAttribute('failures') || '0');
+        const skipped = parseInt(testsuite?.getAttribute('skipped') || '0');
+        const errors = parseInt(testsuite?.getAttribute('errors') || '0');
+        const time = parseFloat(testsuite?.getAttribute('time') || '0');
+    
+        const failedTests = Array.from(doc.querySelectorAll('testcase'))
+            .filter(tc => tc.querySelector('failure'))
+            .map(tc => {
+                const classname = tc.getAttribute('classname') || '';
+                const name = tc.getAttribute('name') || '';
+                return `${classname} :: ${name}`;
+            });
+    
+        return {
+            tests,
+            failed: failures + errors,
+            passed: tests - failures - errors - skipped,
+            skipped,
+            time,
+            failures: failedTests
+        };
+    }
+
+    document.getElementById('search-btn').addEventListener('click', async () => {
+        const searchId = document.getElementById('search-id').value.trim();
+        const resultsDiv = document.getElementById('search-results');
+        resultsDiv.innerHTML = '';
+    
+        if (!searchId) {
+            resultsDiv.innerHTML = '<p style="color:red;">Please enter a valid ID</p>';
+            return;
+        }
+    
+        try {
+            const response = await fetch(`/api/pipeline-summary/${searchId}`);
+            if (!response.ok) throw new Error('Not found');
+    
+            const { pipeline, jobs } = await response.json();
+    
+            const summaryHtml = `
+                <h4>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h4>
+                <p>Ref: <strong>${pipeline.ref}</strong>, Created: ${new Date(pipeline.created_at).toLocaleString()}</p>
+                <ul>
+                    ${jobs.map(job => `
+                        <li>
+                            <strong>${job.job_name}</strong>: ${job.status} (${job.total_tests} tests, ${job.failed_tests} failed)
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+    
+            resultsDiv.innerHTML = summaryHtml;
+        } catch (err) {
+            console.error('Search error:', err);
+            resultsDiv.innerHTML = `<p style="color:red;">No data found for ID: ${searchId}</p>`;
+        }
+    });
+    
 });
