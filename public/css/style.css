@@ -660,3 +660,13 @@ body.light-mode #pipeline-search-section {
 #search-results {
     margin-top: 20px;
 }
+
+#user-list button {
+    background: none;
+    border: none;
+    color: red;
+    font-size: 1.2em;
+}
+#user-list button:hover {
+    transform: scale(1.2);
+}

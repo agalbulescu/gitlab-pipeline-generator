@@ -8,6 +8,8 @@ require('dotenv').config();
 const { initDatabase } = require('./init-db'); // make sure path is correct
 initDatabase();
 
+const db = require('./db');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -100,12 +102,40 @@ async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
 
 // Add this endpoint for user list (protected)
 app.get('/api/users', async (req, res) => {
+    if (!req.session || !req.session.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
     try {
         const result = await db.query('SELECT id, username, name FROM users ORDER BY name ASC');
         res.json(result.rows);
     } catch (err) {
         console.error('❌ Failed to fetch users:', err);
         res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+app.post('/api/users', async (req, res) => {
+    if (!req.session || !req.session.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: admin only' });
+    }
+
+    const { username, password, name } = req.body;
+    await db.query('INSERT INTO users (username, password, name) VALUES ($1, $2, $3)', [username, password, name]);
+    res.json({ success: true });
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+    if (!req.session || !req.session.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: admin only' });
+    }
+
+    const userId = parseInt(req.params.id, 10);
+    try {
+        await db.query('DELETE FROM users WHERE id = $1', [userId]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Failed to delete user:', err);
+        res.status(500).json({ error: 'Failed to delete user' });
     }
 });
 
@@ -294,7 +324,6 @@ app.post('/api/trigger-pipeline', async (req, res) => {
 });
 
 // Get pipeline status
-const { pool } = require('./db'); // adjust the path if needed
 
 app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
     try {
@@ -310,7 +339,7 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
         const progress = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
         // Insert pipeline info into DB
-        await pool.query(
+        await db.query(
             `INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6)
              ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at`,
@@ -319,7 +348,7 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
 
         // Insert each job
         for (const job of jobs) {
-            await pool.query(
+            await db.query(
                 `INSERT INTO jobs (id, pipeline_id, name, status, stage, started_at, finished_at)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)
                  ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, finished_at = EXCLUDED.finished_at`,

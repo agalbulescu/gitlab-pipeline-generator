@@ -774,32 +774,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Event listeners
     // await loadUsers();
 
-    document.getElementById('create-user-btn').addEventListener('click', async () => {
-        const username = document.getElementById('new-username').value.trim();
-        const password = document.getElementById('new-password').value.trim();
-        const name = document.getElementById('new-name').value.trim();
+    // document.getElementById('create-user-btn').addEventListener('click', async () => {
+    //     const username = document.getElementById('new-username').value.trim();
+    //     const password = document.getElementById('new-password').value.trim();
+    //     const name = document.getElementById('new-name').value.trim();
     
-        if (!username || !password || !name) {
-            return document.getElementById('create-user-msg').textContent = 'All fields required';
+    //     if (!username || !password || !name) {
+    //         return document.getElementById('create-user-msg').textContent = 'All fields required';
+    //     }
+    
+    //     try {
+    //         const res = await fetch('/api/users', {
+    //             method: 'POST',
+    //             headers: { 'Content-Type': 'application/json' },
+    //             credentials: 'include',
+    //             body: JSON.stringify({ username, password, name })
+    //         });
+    
+    //         const data = await res.json();
+    //         if (!res.ok) throw new Error(data.error || 'Failed');
+    
+    //         document.getElementById('create-user-msg').textContent = `✅ Created user: ${data.user.name}`;
+    //     } catch (err) {
+    //         document.getElementById('create-user-msg').textContent = `❌ ${err.message}`;
+    //     }
+    // });
+    // Hook elements
+    const adminSection = document.getElementById('admin-section');
+    const createUserBtn = document.getElementById('create-user-btn');
+    const newUsername = document.getElementById('new-username');
+    const newName = document.getElementById('new-name');
+    const newPassword = document.getElementById('new-password');
+    const adminFeedback = document.getElementById('admin-feedback');
+    const userList = document.getElementById('user-list');
+
+    createUserBtn.addEventListener('click', async () => {
+        const username = newUsername.value.trim();
+        const name = newName.value.trim();
+        const password = newPassword.value.trim();
+        if (!username || !name || !password) {
+            adminFeedback.textContent = '⚠️ Please fill all fields';
+            adminFeedback.style.color = 'red';
+            return;
         }
-    
+
         try {
             const res = await fetch('/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ username, password, name })
+                body: JSON.stringify({ username, name, password })
             });
-    
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed');
-    
-            document.getElementById('create-user-msg').textContent = `✅ Created user: ${data.user.name}`;
+
+            if (!res.ok) throw new Error('Failed to create user');
+            adminFeedback.textContent = '✅ User created successfully';
+            adminFeedback.style.color = 'green';
+
+            newUsername.value = '';
+            newName.value = '';
+            newPassword.value = '';
+
+            loadUserList(); // refresh list
         } catch (err) {
-            document.getElementById('create-user-msg').textContent = `❌ ${err.message}`;
+            adminFeedback.textContent = `❌ ${err.message}`;
+            adminFeedback.style.color = 'red';
         }
     });
-    
+
     // Check for existing session
     const user = await checkPersistentSession();
     if (user) {
@@ -833,6 +874,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             return false;
         }
     }
+
+    async function loadUserList() {
+        try {
+            const res = await fetch('/api/users', { credentials: 'include' });
+            if (!res.ok) throw new Error('Failed to load users');
+            const users = await res.json();
+    
+            userList.innerHTML = '';
+            users.forEach(u => {
+                const li = document.createElement('li');
+                li.textContent = `${u.username} (${u.name}) `;
+    
+                // Add delete button/icon
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '❌';
+                deleteBtn.style.marginLeft = '10px';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.addEventListener('click', async () => {
+                    if (!confirm(`Are you sure you want to delete user "${u.username}"?`)) return;
+    
+                    try {
+                        const res = await fetch(`/api/users/${u.id}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        });
+                        if (!res.ok) throw new Error('Failed to delete user');
+                        loadUserList();
+                    } catch (err) {
+                        alert(`❌ ${err.message}`);
+                    }
+                });
+    
+                li.appendChild(deleteBtn);
+                userList.appendChild(li);
+            });
+        } catch (err) {
+            userList.innerHTML = `<li style="color:red;">❌ ${err.message}</li>`;
+        }
+    }    
     
     // Load users on page load
     // async function loadUsers() {
@@ -880,16 +960,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // UI state functions
     function showLoggedInState(user) {
         if (user.isAdmin) {
-            document.getElementById('admin-create-user').style.display = 'block';
+            adminSection.style.display = 'block';
+            loadUserList();
+        } else {
+            adminSection.style.display = 'none';
+            document.getElementById('generate-btn').disabled = false;
+            document.getElementById('pipeline-trigger-section').style.display = 'block';
+            document.getElementById('app-content').style.display = 'block'; // 👈 show the main UI
+            // ✅ Only fetch branches after login/session confirmed
+            fetchBranches();
         }
         loginForm.style.display = 'none';
         loggedInUser.style.display = 'flex';
         currentUserSpan.textContent = `Logged in as: ${user.name}`;
-        document.getElementById('generate-btn').disabled = false;
-        document.getElementById('pipeline-trigger-section').style.display = 'block';
-        document.getElementById('app-content').style.display = 'block'; // 👈 show the main UI
-    // ✅ Only fetch branches after login/session confirmed
-    fetchBranches();
     }
 
     function showLoggedOutState() {
@@ -899,6 +982,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('generate-btn').disabled = true;
         document.getElementById('pipeline-trigger-section').style.display = 'none';
         document.getElementById('app-content').style.display = 'none'; // 👈 hide the main UI
+        adminSection.style.display = 'none';
         document.getElementById('username').value = '';
         document.getElementById('password').value = '';
     }

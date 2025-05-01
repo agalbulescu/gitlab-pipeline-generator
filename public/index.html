@@ -24,14 +24,25 @@
                 <span id="current-user"></span>
                 <button id="logout-btn">Logout</button>
             </div>
-            <div id="admin-create-user" style="display:none; margin-top: 30px;">
-                <h3>Create New User (Admin Only)</h3>
-                <input id="new-username" placeholder="Username" />
-                <input id="new-password" placeholder="Password" type="password" />
-                <input id="new-name" placeholder="Full Name" />
-                <button id="create-user-btn">Create User</button>
-                <div id="create-user-msg"></div>
-            </div>
+        </div>
+        <!-- <div id="admin-create-user" style="display:none; margin-top: 30px;">
+            <h3>Create New User (Admin Only)</h3>
+            <input id="new-username" placeholder="Username" />
+            <input id="new-password" placeholder="Password" type="password" />
+            <input id="new-name" placeholder="Full Name" />
+            <button id="create-user-btn">Create User</button>
+            <div id="create-user-msg"></div>
+        </div> -->
+        <div id="admin-section" style="display:none; margin-top: 20px;">
+            <h3>Create New User (Admin Only)</h3>
+            <input type="text" id="new-username" placeholder="Username">
+            <input type="text" id="new-name" placeholder="Full Name">
+            <input type="password" id="new-password" placeholder="Password">
+            <button id="create-user-btn">Create User</button>
+            <div id="admin-feedback" style="margin-top:10px; color:green;"></div>
+        
+            <h3 style="margin-top:20px;">User List</h3>
+            <ul id="user-list" style="list-style:none; padding-left:0;"></ul>
         </div>
         <div id="app-content" style="display: none;">
             <header>

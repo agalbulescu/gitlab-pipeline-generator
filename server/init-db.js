@@ -37,7 +37,7 @@ async function initDatabase() {
             );
         `);
         console.log('✅ Jobs table ensured');
-        console.log('✅ Database ensured.');
+        console.log('✅ Database completely ensured.');
     } catch (err) {
         console.error('❌ Error initializing database:', err);
         process.exit(1);
