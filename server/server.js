@@ -644,11 +644,6 @@ test_${internalName}:
     `;
   });
 
-//   const testJobNames = selectedGames.map(game => {
-//       const internalName = game.split(':')[0].toLowerCase().replace(/\s+/g, '_');
-//       return `test_${internalName}`;
-//   });
-
   const assumeRoleAnchor = `
 .assume-role: &assume-role
 - >
