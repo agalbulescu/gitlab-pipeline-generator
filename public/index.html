@@ -25,14 +25,6 @@
                 <button id="logout-btn">Logout</button>
             </div>
         </div>
-        <!-- <div id="admin-create-user" style="display:none; margin-top: 30px;">
-            <h3>Create New User (Admin Only)</h3>
-            <input id="new-username" placeholder="Username" />
-            <input id="new-password" placeholder="Password" type="password" />
-            <input id="new-name" placeholder="Full Name" />
-            <button id="create-user-btn">Create User</button>
-            <div id="create-user-msg"></div>
-        </div> -->
         <div id="admin-section" style="display:none; margin-top: 20px;">
             <h3>Create New User (Admin Only)</h3>
             <input type="text" id="new-username" placeholder="Username">
@@ -44,10 +36,19 @@
             <h3 style="margin-top:20px;">User List</h3>
             <ul id="user-list" style="list-style:none; padding-left:0;"></ul>
         </div>
+        <section id="admin-games-section" style="margin-top: 30px;">
+            <h3>Manage Games (Admin Only)</h3>
+            <div>
+                <input type="text" id="new-game-display" placeholder="Display Name">
+                <input type="text" id="new-game-internal" placeholder="Internal Name">
+                <button id="add-game-btn">Add Game</button>
+            </div>
+            <ul id="games-list"></ul>
+        </section>
         <div id="app-content" style="display: none;">
             <header>
                 <h1>GitLab Pipeline Generator</h1>
-                <button id="edit-games-button" onclick="toggleEditGames()">EDIT GAMES LIST</button>
+                <!-- <button id="edit-games-button" onclick="toggleEditGames()">EDIT GAMES LIST</button> -->
                 <div class="mode-toggle" onclick="toggleMode()">🌓</div>
             </header>
 
@@ -82,15 +83,15 @@
                 <!-- <button id="generate-btn" disabled>Generate Pipeline</button> -->
             </div>
 
-            <div id="edit-games">
+            <!-- <div id="edit-games">
                 <h3>Games List</h3>
                 <p>*any changes will be lost on page reload</p>
-                <div id="games-list-container">
+                <div id="games-list-container"> -->
                     <!-- Default games will be added here dynamically -->
-                </div>
+                <!-- </div>
                 <button id="add-game-button" onclick="addGameEntry()">ADD GAME</button>
                 <button id="save-games-button" onclick="saveGamesList()">SAVE GAMES LIST</button>
-            </div>
+            </div> -->
 
             <div class="sub-title-2">Actions per Game</div>
             <table>

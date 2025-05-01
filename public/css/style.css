@@ -670,3 +670,35 @@ body.light-mode #pipeline-search-section {
 #user-list button:hover {
     transform: scale(1.2);
 }
+#admin-games-section input {
+    margin: 5px;
+    padding: 5px;
+}
+
+#games-list li {
+    margin: 5px 0;
+}
+
+#games-list button {
+    margin-left: 10px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+pre.pipeline-yml-block {
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #1e1e1e;
+    color: #ccc;
+    padding: 10px;
+    border: 1px solid #444;
+    margin-top: 10px;
+}
+body.light-mode pre.pipeline-yml-block {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #ddd;
+}

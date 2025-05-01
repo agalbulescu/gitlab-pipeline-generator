@@ -1,61 +1,3 @@
-// Game selector functionality
-const defaultGames = [
-    { displayName: 'Andar Bahar', internalName: 'andar_bahar' },
-    { displayName: 'Automated Roulette', internalName: 'automated_roulette' },
-    { displayName: 'Baccarat', internalName: 'baccarat' },
-    { displayName: 'Baccarat Dragon Tiger', internalName: 'baccarat_dragon_tiger' },
-    { displayName: 'Baccarat Knockout', internalName: 'baccarat_knockout' },
-    { displayName: 'Baccarat No Commission', internalName: 'baccarat_no_commission' },
-    { displayName: 'Baccarat Super Six', internalName: 'baccarat_super_six' },
-    { displayName: 'Bet on Teen Patti', internalName: 'bet_on_teen_patti' },
-    { displayName: 'Blackjack', internalName: 'blackjack' },
-    { displayName: 'Blackjack Salon Privé', internalName: 'blackjack_salon_prive' },
-    { displayName: 'Casino Hold\'em', internalName: 'casino_holdem' },
-    { displayName: 'Cricket War', internalName: 'cricket_war' },
-    { displayName: 'Lucky Seven', internalName: 'lucky_seven' },
-    { displayName: 'Matka', internalName: 'matka' },
-    { displayName: 'One Day Teen Patti Back & Lay', internalName: 'one_day_teen_patti_back_and_lay' },
-    { displayName: 'OTT Andar Bahar', internalName: 'ott_andar_bahar' },
-    { displayName: 'OTT Baccarat', internalName: 'ott_baccarat' },
-    { displayName: 'OTT Roulette', internalName: 'ott_roulette' },
-    { displayName: 'Roulette', internalName: 'roulette' },
-    { displayName: 'Roulette New', internalName: 'roulette_new' },
-    { displayName: 'Russian Poker', internalName: 'russian_poker' },
-    { displayName: 'Sic Bo', internalName: 'sic_bo' },
-    { displayName: 'Teen Patti', internalName: 'teen_patti' },
-    { displayName: 'Thirty-Two Cards', internalName: 'thirty_two_cards' },
-    { displayName: 'Ultimate Andar Bahar', internalName: 'ultimate_andar_bahar' },
-    { displayName: 'Ultimate Roulette', internalName: 'ultimate_roulette' },
-    { displayName: 'Ultimate Sic Bo', internalName: 'ultimate_sic_bo' },
-    { displayName: 'Unlimited Blackjack', internalName: 'unlimited_blackjack' },
-    { displayName: 'Xóc Đĩa', internalName: 'xoc_dia' }
-];
-
-// Function to add a new game entry
-function addGameEntry(displayName = '', internalName = '') {
-    const container = document.getElementById('games-list-container');
-    const entry = document.createElement('div');
-    entry.classList.add('game-entry');
-    entry.innerHTML = `
-        <input type="text" class="display-name" placeholder="Display Name" value="${displayName}">
-        <input type="text" class="internal-name" placeholder="Internal Name" value="${internalName}">
-        <button onclick="removeGameEntry(this)">✖</button>
-    `;
-    container.appendChild(entry);
-}
-
-// Function to remove a game entry
-function removeGameEntry(button) {
-    const entry = button.closest('.game-entry');
-    entry.remove();
-}
-
-// Function to save the games list and update the table
-function saveGamesList() {
-    updateTable();
-    toggleEditGames();
-}
-
 // Function to toggle light/dark mode
 function toggleMode() {
     const body = document.body;
@@ -123,151 +65,6 @@ function clearButtons() {
     buttons.forEach(button => button.classList.remove('active'));
     updateTableBasedOnButtons();
     updateOutput();
-}
-
-function toggleEditGames() {
-    const editGames = document.getElementById('edit-games');
-    const table = document.querySelector('table');
-    const subTitle = document.querySelector('.sub-title');
-    const subTitle2 = document.querySelector('.sub-title-2');
-    const buttonsContainer = document.querySelector('.buttons-container');
-    const textboxContainer = document.querySelector('.textbox-container');
-    const editGamesButton = document.getElementById('edit-games-button');
-
-    if (editGames.style.display === 'none' || editGames.style.display === '') {
-        editGames.style.display = 'block';
-        table.style.display = 'none';
-        subTitle.style.display = 'none';
-        subTitle2.style.display = 'none';
-        buttonsContainer.style.display = 'none';
-        textboxContainer.style.display = 'none';
-        editGamesButton.classList.add('active');
-    } else {
-        editGames.style.display = 'none';
-        table.style.display = 'table';
-        subTitle.style.display = 'block';
-        subTitle2.style.display = 'block';
-        buttonsContainer.style.display = 'flex';
-        textboxContainer.style.display = 'flex';
-        editGamesButton.classList.remove('active');
-    }
-
-    if (editGames.style.display === 'block') {
-        const tableBody = document.getElementById('table-body');
-        const rows = tableBody.querySelectorAll('tr');
-        const container = document.getElementById('games-list-container');
-        container.innerHTML = '';
-        rows.forEach(row => {
-            const displayName = row.querySelector('td:nth-child(2)').textContent;
-            const internalName = row.dataset.internalName;
-            addGameEntry(displayName, internalName);
-        });
-    }
-}
-
-function updateTable() {
-    const container = document.getElementById('games-list-container');
-    const entries = container.querySelectorAll('.game-entry');
-    const tableBody = document.getElementById('table-body');
-    tableBody.innerHTML = '';
-
-    entries.forEach(entry => {
-        const displayName = entry.querySelector('.display-name').value.trim();
-        const internalName = entry.querySelector('.internal-name').value.trim();
-        if (!displayName || !internalName) return;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <label class="switch">
-                    <input type="checkbox" onchange="toggleRowSwitches(this)">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td class="game-name-cell">${displayName}</td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="all-switch" disabled onchange="toggleAllSwitch(this)" data-column="all">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="payouts-switch" disabled onchange="togglePayoutsSwitch(this)" data-column="payouts">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="ui-switch" disabled onchange="toggleUISwitch(this)" data-column="ui">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="analytics-switch" disabled onchange="toggleAnalyticsSwitch(this)" data-column="analytics">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="smapp-switch" disabled onchange="toggleSMAppSwitch(this)" data-column="smapp">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="desktop-payouts-switch" disabled onchange="toggleDesktopPayoutsSwitch(this)" data-column="desktop_payouts">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="desktop-ui-switch" disabled onchange="toggleDesktopUISwitch(this)" data-column="desktop_ui">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="desktop-analytics-switch" disabled onchange="toggleDesktopAnalyticsSwitch(this)" data-column="desktop_analytics">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="mobile-payouts-switch" disabled onchange="toggleMobilePayoutsSwitch(this)" data-column="mobile_payouts">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="mobile-ui-switch" disabled onchange="toggleMobileUISwitch(this)" data-column="mobile_ui">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-            <td>
-                <label class="switch">
-                    <input type="checkbox" class="mobile-analytics-switch" disabled onchange="toggleMobileAnalyticsSwitch(this)" data-column="mobile_analytics">
-                    <span class="slider round"></span>
-                </label>
-            </td>
-        `;
-        row.dataset.internalName = internalName;
-        tableBody.appendChild(row);
-    });
-
-    const tableCells = document.querySelectorAll('#table-body td');
-    tableCells.forEach(cell => {
-        cell.addEventListener('click', (event) => {
-            const switchInput = cell.querySelector('input[type="checkbox"]');
-            if (switchInput && !switchInput.disabled) {
-                switchInput.checked = !switchInput.checked;
-                switchInput.dispatchEvent(new Event('change'));
-            }
-        });
-    });
-
-    updateTableBasedOnButtons();
 }
 
 function updateTableBasedOnButtons() {
@@ -672,7 +469,6 @@ function renderTestSummaryChart(containerId, summary, jobName) {
     });
 }
 
-// async function triggerPipeline(branch, selectedGames) {
 async function triggerPipeline(branch) {
 
     console.log('Triggering on branch:', branch);
@@ -685,11 +481,7 @@ async function triggerPipeline(branch) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                branch,
-                // variables: {
-                //     SELECTED_GAMES: selectedGames,
-                //     ENVIRONMENT: selectedEnvironment
-                // }
+                branch
             })
         });
 
@@ -766,39 +558,118 @@ document.addEventListener('DOMContentLoaded', async () => {
     let generatedPipeline = null;
 
     // Initialize game selector
-    defaultGames.forEach(game => {
-        addGameEntry(game.displayName, game.internalName);
-    });
-    updateTable();
+    async function loadGames() {
+        try {
+            const res = await fetch('/api/games');
+            if (!res.ok) throw new Error('Failed to fetch games');
+            const games = await res.json();
+            updateTableWithGames(games);
+        } catch (err) {
+            console.error('Error loading games:', err);
+        }
+    }
 
-    // Event listeners
-    // await loadUsers();
+    function updateTableWithGames(games) {
+        const tableBody = document.getElementById('table-body');
+        tableBody.innerHTML = '';
+    
+        games.forEach(game => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" onchange="toggleRowSwitches(this)">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td class="game-name-cell">${game.display_name}</td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="all-switch" disabled onchange="toggleAllSwitch(this)" data-column="all">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="payouts-switch" disabled onchange="togglePayoutsSwitch(this)" data-column="payouts">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="ui-switch" disabled onchange="toggleUISwitch(this)" data-column="ui">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="analytics-switch" disabled onchange="toggleAnalyticsSwitch(this)" data-column="analytics">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="smapp-switch" disabled onchange="toggleSMAppSwitch(this)" data-column="smapp">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="desktop-payouts-switch" disabled onchange="toggleDesktopPayoutsSwitch(this)" data-column="desktop_payouts">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="desktop-ui-switch" disabled onchange="toggleDesktopUISwitch(this)" data-column="desktop_ui">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="desktop-analytics-switch" disabled onchange="toggleDesktopAnalyticsSwitch(this)" data-column="desktop_analytics">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="mobile-payouts-switch" disabled onchange="toggleMobilePayoutsSwitch(this)" data-column="mobile_payouts">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="mobile-ui-switch" disabled onchange="toggleMobileUISwitch(this)" data-column="mobile_ui">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="mobile-analytics-switch" disabled onchange="toggleMobileAnalyticsSwitch(this)" data-column="mobile_analytics">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+            `;
+            row.dataset.internalName = game.internal_name;
+            tableBody.appendChild(row);
+        });
 
-    // document.getElementById('create-user-btn').addEventListener('click', async () => {
-    //     const username = document.getElementById('new-username').value.trim();
-    //     const password = document.getElementById('new-password').value.trim();
-    //     const name = document.getElementById('new-name').value.trim();
+        const tableCells = document.querySelectorAll('#table-body td');
+        tableCells.forEach(cell => {
+            cell.addEventListener('click', (event) => {
+                const switchInput = cell.querySelector('input[type="checkbox"]');
+                if (switchInput && !switchInput.disabled) {
+                    switchInput.checked = !switchInput.checked;
+                    switchInput.dispatchEvent(new Event('change'));
+                }
+            });
+        });
     
-    //     if (!username || !password || !name) {
-    //         return document.getElementById('create-user-msg').textContent = 'All fields required';
-    //     }
-    
-    //     try {
-    //         const res = await fetch('/api/users', {
-    //             method: 'POST',
-    //             headers: { 'Content-Type': 'application/json' },
-    //             credentials: 'include',
-    //             body: JSON.stringify({ username, password, name })
-    //         });
-    
-    //         const data = await res.json();
-    //         if (!res.ok) throw new Error(data.error || 'Failed');
-    
-    //         document.getElementById('create-user-msg').textContent = `✅ Created user: ${data.user.name}`;
-    //     } catch (err) {
-    //         document.getElementById('create-user-msg').textContent = `❌ ${err.message}`;
-    //     }
-    // });
+        updateTableBasedOnButtons();
+    }    
+
+    await loadGames();
+
     // Hook elements
     const adminSection = document.getElementById('admin-section');
     const createUserBtn = document.getElementById('create-user-btn');
@@ -913,27 +784,66 @@ document.addEventListener('DOMContentLoaded', async () => {
             userList.innerHTML = `<li style="color:red;">❌ ${err.message}</li>`;
         }
     }    
+
+    async function loadAdminGames() {
+        try {
+            const res = await fetch('/api/games');
+            const games = await res.json();
     
-    // Load users on page load
-    // async function loadUsers() {
-    //     try {
-    //         const response = await fetch('/api/users', {
-    //             method: 'GET',
-    //             credentials: 'include' // 👈 important!
-    //         });
-    //         if (!response.ok) throw new Error('Failed to load users');
-    //         const users = await response.json();
-            
-    //         // Populate dropdown
-    //         usernameSelect.innerHTML = '<option value="">Select User</option>' +
-    //             users.map(user => 
-    //                 `<option value="${user.username}">${user.name}</option>`
-    //             ).join('');
-    //     } catch (error) {
-    //         console.error('Error loading users:', error);
-    //         showError('Failed to load user list');
-    //     }
-    // }
+            const gamesList = document.getElementById('games-list');
+            gamesList.innerHTML = '';
+    
+            games.forEach(game => {
+                const li = document.createElement('li');
+                li.textContent = `${game.display_name} (${game.internal_name}) `;
+    
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`Delete game "${game.display_name}"?`)) {
+                        const resp = await fetch(`/api/games/${game.id}`, { method: 'DELETE' });
+                        if (resp.ok) {
+                            loadAdminGames();
+                        } else {
+                            alert('Failed to delete game');
+                        }
+                    }
+                });
+    
+                li.appendChild(deleteBtn);
+                gamesList.appendChild(li);
+            });
+        } catch (err) {
+            console.error('Failed to load games', err);
+        }
+    }
+    
+    document.getElementById('add-game-btn').addEventListener('click', async () => {
+        const display = document.getElementById('new-game-display').value.trim();
+        const internal = document.getElementById('new-game-internal').value.trim();
+    
+        if (!display || !internal) {
+            alert('Please fill both display and internal name');
+            return;
+        }
+    
+        try {
+            const res = await fetch('/api/games', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ display_name: display, internal_name: internal })
+            });
+            if (res.ok) {
+                document.getElementById('new-game-display').value = '';
+                document.getElementById('new-game-internal').value = '';
+                loadAdminGames();
+            } else {
+                alert('Failed to add game');
+            }
+        } catch (err) {
+            console.error('Add game error', err);
+        }
+    });
 
     // Handle login
     async function handleLogin() {
@@ -962,8 +872,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (user.isAdmin) {
             adminSection.style.display = 'block';
             loadUserList();
+            document.getElementById('admin-games-section').style.display = 'block';
+            loadAdminGames();
         } else {
             adminSection.style.display = 'none';
+            document.getElementById('admin-games-section').style.display = 'none';
             document.getElementById('generate-btn').disabled = false;
             document.getElementById('pipeline-trigger-section').style.display = 'block';
             document.getElementById('app-content').style.display = 'block'; // 👈 show the main UI
@@ -983,6 +896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('pipeline-trigger-section').style.display = 'none';
         document.getElementById('app-content').style.display = 'none'; // 👈 hide the main UI
         adminSection.style.display = 'none';
+        document.getElementById('admin-games-section').style.display = 'none';
         document.getElementById('username').value = '';
         document.getElementById('password').value = '';
     }
@@ -1159,22 +1073,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Create message container
         const messageDiv = document.createElement('div');
         messageDiv.className = `status-message ${type}`;
-        
+    
         // Main message
         const messageElement = document.createElement('div');
         messageElement.textContent = message;
         messageDiv.appendChild(messageElement);
     
-        // Add details if provided
+        // If details are provided, create toggle button and hidden pre block
         if (details) {
-            const detailsElement = document.createElement('div');
-            detailsElement.className = 'status-details';
-            detailsElement.textContent = details;
-            messageDiv.appendChild(detailsElement);
+            const toggleButton = document.createElement('button');
+            toggleButton.textContent = 'Show Full YAML';
+            toggleButton.style.marginTop = '10px';
+            toggleButton.className = 'copy-button'; // reuse your green button style
+    
+            const preBlock = document.createElement('pre');
+            preBlock.className = 'pipeline-yml-block';
+            preBlock.textContent = details;
+            preBlock.style.display = 'none';
+            preBlock.style.maxHeight = '300px';
+            preBlock.style.overflowY = 'auto';
+            preBlock.style.backgroundColor = '#1e1e1e';
+            preBlock.style.color = '#ccc';
+            preBlock.style.padding = '10px';
+            preBlock.style.border = '1px solid #444';
+            preBlock.style.marginTop = '10px';
+    
+            toggleButton.addEventListener('click', () => {
+                if (preBlock.style.display === 'none') {
+                    preBlock.style.display = 'block';
+                    toggleButton.textContent = 'Hide Full YAML';
+                } else {
+                    preBlock.style.display = 'none';
+                    toggleButton.textContent = 'Show Full YAML';
+                }
+            });
+    
+            messageDiv.appendChild(toggleButton);
+            messageDiv.appendChild(preBlock);
         }
     
         pipelineStatus.appendChild(messageDiv);
-    }
+    }    
 
     async function pollPipelineStatus(pipelineId) {
         const interval = setInterval(async () => {

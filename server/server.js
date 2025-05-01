@@ -38,6 +38,8 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         secure: false, // change to true in production with HTTPS
+        httpOnly: true,
+        sameSite: 'none',
         maxAge: SESSION_DURATION
     }
 }));
@@ -61,13 +63,6 @@ const GITLAB_CONFIG = {
 };
 
 let latestGeneratedPipelineYml = '';
-
-// const users = [
-//     { id: 1, username: 'aalbulescu', password: 'qa', name: 'Andrei Albulescu' },
-//     { id: 2, username: 'bdobre', password: 'qa', name: 'Bogdan Dobre' },
-//     { id: 2, username: 'seftimie', password: 'qa', name: 'Sergiu Eftimie' },
-//     // Add more users as needed
-// ];
 
 // Helper function for GitLab API requests
 async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
@@ -136,6 +131,46 @@ app.delete('/api/users/:id', async (req, res) => {
     } catch (err) {
         console.error('❌ Failed to delete user:', err);
         res.status(500).json({ error: 'Failed to delete user' });
+    }
+});
+
+app.get('/api/games', async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM games ORDER BY display_name ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Failed to fetch games:', err);
+        res.status(500).json({ error: 'Failed to fetch games' });
+    }
+});
+
+// Add a new game (admin only)
+app.post('/api/games', async (req, res) => {
+    if (!req.session || !req.session.isAdmin) {
+        return res.status(403).json({ error: 'Admin only' });
+    }
+    const { display_name, internal_name } = req.body;
+    try {
+        await db.query('INSERT INTO games (display_name, internal_name) VALUES ($1, $2)', [display_name, internal_name]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Add game error:', err);
+        res.status(500).json({ error: 'Failed to add game' });
+    }
+});
+
+// Delete a game (admin only)
+app.delete('/api/games/:id', async (req, res) => {
+    if (!req.session || !req.session.isAdmin) {
+        return res.status(403).json({ error: 'Admin only' });
+    }
+    const id = parseInt(req.params.id, 10);
+    try {
+        await db.query('DELETE FROM games WHERE id = $1', [id]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Delete game error:', err);
+        res.status(500).json({ error: 'Failed to delete game' });
     }
 });
 
@@ -224,23 +259,45 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/api/check-session', (req, res) => {
-    if (!req.session.userId || req.session.expires < Date.now()) {
+app.get('/api/check-session', async (req, res) => {
+    if (typeof req.session.userId === 'undefined' || req.session.expires < Date.now()) {
         return res.status(401).json({ valid: false });
     }
 
     req.session.expires = Date.now() + SESSION_DURATION;
 
-    const user = users.find(u => u.id === req.session.userId);
-    res.json({
-        valid: true,
-        user: {
-            id: user.id,
-            username: user.username,
-            name: user.name,
-            isAdmin: req.session.isAdmin
+    if (req.session.isAdmin) {
+        return res.json({
+            valid: true,
+            user: {
+                id: 0,
+                username: ADMIN_USERNAME,
+                name: 'Administrator',
+                isAdmin: true
+            }
+        });
+    }
+
+    try {
+        const result = await db.query('SELECT id, username, name FROM users WHERE id = $1', [req.session.userId]);
+        const user = result.rows[0];
+        if (!user) {
+            return res.status(404).json({ valid: false });
         }
-    });
+
+        res.json({
+            valid: true,
+            user: {
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                isAdmin: false
+            }
+        });
+    } catch (err) {
+        console.error('Session check DB error:', err);
+        res.status(500).json({ valid: false, error: 'DB error' });
+    }
 });
 
 // API endpoint to generate pipeline YML
@@ -297,11 +354,7 @@ app.post('/api/trigger-pipeline', async (req, res) => {
                 },
                 body: JSON.stringify({
                     ref: branch || 'main',
-                    token: GITLAB_CONFIG.TRIGGER_TOKEN,
-                    // variables: Object.entries(variables || {}).map(([key, value]) => ({
-                    //     key,
-                    //     value
-                    // }))
+                    token: GITLAB_CONFIG.TRIGGER_TOKEN
                 })
             }
         );
