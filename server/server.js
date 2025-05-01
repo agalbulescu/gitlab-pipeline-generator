@@ -560,7 +560,9 @@ function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
   const maxConcurrentGroups = 5; // You can make this configurable
 
   const suiteMap = {
-      'all': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
+      'regression': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
+      'sanity': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m sanity',
+      'smoke': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m smoke',
       'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_payouts',
       'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_ui',
       'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_analytics',

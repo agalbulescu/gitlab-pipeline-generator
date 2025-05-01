@@ -9,7 +9,7 @@ body { background-color: #1f1f1f; color: #fff; }
 body.light-mode { background-color: #fff; color: #000; }
 
 .container {
-    max-width: 1600px;
+    max-width: 1700px;
     margin: 0 auto;
     padding: 20px;
 }
@@ -97,13 +97,16 @@ td { background-color: #222; cursor: pointer; }
 .light-mode td { background-color: #eee; }
 
 th:not(#game-name-header), td:not(.game-name-cell) {
-    width: 82px !important;
-    min-width: 82px !important;
-    max-width: 82px !important;
+    width: 62px !important;
+    min-width: 62px !important;
+    max-width: 62px !important;
 }
 #game-name-header, .game-name-cell {
     width: auto;
-    min-width: 150px;
+    min-width: 250px;
+}
+#test-type-column {
+    font-size: small;
 }
 
 /* Selected row */
@@ -203,8 +206,8 @@ textarea {
 .switch {
     position: relative;
     display: inline-block;
-    width: 45px;
-    height: 25px;
+    width: 35px;
+    height: 20px;
 }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider {
@@ -221,16 +224,16 @@ textarea {
 .slider:before {
     position: absolute;
     content: "";
-    height: 20px;
-    width: 20px;
-    left: 3px;
-    bottom: 3px;
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
     background-color: white;
     transition: 0.4s;
 }
 input:checked + .slider { background-color: #4CAF50; }
 input:focus + .slider { box-shadow: 0 0 1px #4CAF50; }
-input:checked + .slider:before { transform: translateX(20px); }
+input:checked + .slider:before { transform: translateX(15px); }
 .slider.round { border-radius: 34px; }
 .slider.round:before { border-radius: 50%; }
 

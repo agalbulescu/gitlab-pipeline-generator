@@ -14,15 +14,52 @@ function toggleMode() {
 
 function toggleButton(button) {
     const buttons = document.querySelectorAll('.buttons-container button');
-    const payoutsButton = document.querySelector('.buttons-container button:nth-child(2)');
-    const uiButton = document.querySelector('.buttons-container button:nth-child(3)');
-    const analyticsButton = document.querySelector('.buttons-container button:nth-child(4)');
-    const smappButton = document.querySelector('.buttons-container button:nth-child(5)');
-    const desktopButton = document.querySelector('.buttons-container button:nth-child(6)');
-    const mobileButton = document.querySelector('.buttons-container button:nth-child(7)');
+    const regressionButton = document.querySelector('.buttons-container button:nth-child(1)');
+    const sanityButton = document.querySelector('.buttons-container button:nth-child(2)');
+    const smokeButton = document.querySelector('.buttons-container button:nth-child(3)');
+    const payoutsButton = document.querySelector('.buttons-container button:nth-child(4)');
+    const uiButton = document.querySelector('.buttons-container button:nth-child(5)');
+    const analyticsButton = document.querySelector('.buttons-container button:nth-child(6)');
+    const smappButton = document.querySelector('.buttons-container button:nth-child(7)');
+    const desktopButton = document.querySelector('.buttons-container button:nth-child(8)');
+    const mobileButton = document.querySelector('.buttons-container button:nth-child(9)');
 
     button.classList.toggle('active');
 
+    // Regression → clear all others
+    if (button === regressionButton) {
+        if (regressionButton.classList.contains('active')) {
+            buttons.forEach(btn => {
+                if (btn !== regressionButton && btn.textContent !== 'CLEAR') {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    // Sanity → clear everything except itself
+    if (button === sanityButton) {
+        if (sanityButton.classList.contains('active')) {
+            buttons.forEach(btn => {
+                if (btn !== sanityButton && btn.textContent !== 'CLEAR') {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    // Smoke → clear everything except itself
+    if (button === smokeButton) {
+        if (smokeButton.classList.contains('active')) {
+            buttons.forEach(btn => {
+                if (btn !== smokeButton && btn.textContent !== 'CLEAR') {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    // Desktop ↔ smapp binding
     if (button === desktopButton) {
         if (desktopButton.classList.contains('active')) {
             smappButton.classList.add('active');
@@ -35,25 +72,28 @@ function toggleButton(button) {
         smappButton.classList.add('active');
     }
 
+    // Selecting payouts, ui, analytics clears desktop & mobile
     if (button === payoutsButton || button === uiButton || button === analyticsButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
         desktopButton.classList.remove('active');
         mobileButton.classList.remove('active');
     }
 
+    // Selecting desktop or mobile clears payouts, ui, analytics
     if (button === desktopButton || button === mobileButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
         payoutsButton.classList.remove('active');
         uiButton.classList.remove('active');
         analyticsButton.classList.remove('active');
     }
 
-    if (button.textContent === 'ALL') {
-        buttons.forEach(btn => {
-            if (btn !== button && btn.textContent !== 'CLEAR') {
-                btn.classList.remove('active');
-            }
-        });
-    } else if (button.textContent !== 'CLEAR') {
-        document.querySelector('.buttons-container button:first-child').classList.remove('active');
+    // Clear button
+    if (button.textContent === 'CLEAR') {
+        buttons.forEach(btn => btn.classList.remove('active'));
     }
 
     updateTableBasedOnButtons();
@@ -69,17 +109,23 @@ function clearButtons() {
 
 function updateTableBasedOnButtons() {
     const rows = document.querySelectorAll('#table-body tr');
-    const allButton = document.querySelector('.buttons-container button:first-child');
-    const payoutsButton = document.querySelector('.buttons-container button:nth-child(2)');
-    const uiButton = document.querySelector('.buttons-container button:nth-child(3)');
-    const analyticsButton = document.querySelector('.buttons-container button:nth-child(4)');
-    const smappButton = document.querySelector('.buttons-container button:nth-child(5)');
-    const desktopButton = document.querySelector('.buttons-container button:nth-child(6)');
-    const mobileButton = document.querySelector('.buttons-container button:nth-child(7)');
+    // const allButton = document.querySelector('.buttons-container button:first-child');
+    const regressionButton = document.querySelector('.buttons-container button:first-child');
+    const sanityButton = document.querySelector('.buttons-container button:nth-child(2)');
+    const smokeButton = document.querySelector('.buttons-container button:nth-child(3)');
+    const payoutsButton = document.querySelector('.buttons-container button:nth-child(4)');
+    const uiButton = document.querySelector('.buttons-container button:nth-child(5)');
+    const analyticsButton = document.querySelector('.buttons-container button:nth-child(6)');
+    const smappButton = document.querySelector('.buttons-container button:nth-child(7)');
+    const desktopButton = document.querySelector('.buttons-container button:nth-child(8)');
+    const mobileButton = document.querySelector('.buttons-container button:nth-child(9)');
 
     rows.forEach(row => {
         const runSwitch = row.querySelector('input[type="checkbox"]:first-child');
-        const allSwitch = row.querySelector('.all-switch');
+        // const allSwitch = row.querySelector('.all-switch');
+        const regressionSwitch = row.querySelector('.regression-switch');
+        const sanitySwitch = row.querySelector('.sanity-switch');
+        const smokeSwitch = row.querySelector('.smoke-switch');
         const payoutsSwitch = row.querySelector('.payouts-switch');
         const uiSwitch = row.querySelector('.ui-switch');
         const analyticsSwitch = row.querySelector('.analytics-switch');
@@ -92,7 +138,10 @@ function updateTableBasedOnButtons() {
         const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
 
         runSwitch.checked = false;
-        allSwitch.checked = false;
+        // allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
@@ -104,7 +153,9 @@ function updateTableBasedOnButtons() {
         mobileUISwitch.checked = false;
         mobileAnalyticsSwitch.checked = false;
 
-        if (allButton.classList.contains('active') ||
+        if (regressionButton.classList.contains('active') ||
+            sanityButton.classList.contains('active') ||
+            smokeButton.classList.contains('active') ||
             payoutsButton.classList.contains('active') ||
             uiButton.classList.contains('active') ||
             analyticsButton.classList.contains('active') ||
@@ -121,9 +172,22 @@ function updateTableBasedOnButtons() {
                 }
             });
 
-            if (allButton.classList.contains('active')) {
-                allSwitch.checked = true;
-                toggleAllSwitch(allSwitch);
+            // if (allButton.classList.contains('active')) {
+            //     allSwitch.checked = true;
+            //     toggleAllSwitch(allSwitch);
+            // }
+
+            if (regressionButton.classList.contains('active')) {
+                regressionSwitch.checked = true;
+                toggleRegressionSwitch(regressionSwitch);
+            }
+            if (sanityButton.classList.contains('active')) {
+                sanitySwitch.checked = true;
+                toggleSanitySwitch(sanitySwitch);
+            }
+            if (smokeButton.classList.contains('active')) {
+                smokeSwitch.checked = true;
+                toggleSmokeSwitch(smokeSwitch);
             }
 
             if (payoutsButton.classList.contains('active')) {
@@ -193,10 +257,10 @@ function toggleRowSwitches(runSwitch) {
     });
 
     if (runSwitch.checked) {
-        const allSwitch = row.querySelector('.all-switch');
-        if (allSwitch) {
-            allSwitch.checked = true;
-            toggleAllSwitch(allSwitch);
+        const regressionSwitch = row.querySelector('.regression-switch');
+        if (regressionSwitch) {
+            regressionSwitch.checked = true;
+            toggleRegressionSwitch(regressionSwitch);
         }
         row.classList.add('selected-row');
     } else {
@@ -205,8 +269,10 @@ function toggleRowSwitches(runSwitch) {
     updateOutput();
 }
 
-function toggleAllSwitch(allSwitch) {
-    const row = allSwitch.closest('tr');
+function toggleRegressionSwitch(regressionSwitch) {
+    const row = regressionSwitch.closest('tr');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const payoutsSwitch = row.querySelector('.payouts-switch');
     const uiSwitch = row.querySelector('.ui-switch');
     const analyticsSwitch = row.querySelector('.analytics-switch');
@@ -218,7 +284,73 @@ function toggleAllSwitch(allSwitch) {
     const mobileUISwitch = row.querySelector('.mobile-ui-switch');
     const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
 
-    if (allSwitch.checked) {
+    if (regressionSwitch.checked) {
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
+        payoutsSwitch.checked = false;
+        uiSwitch.checked = false;
+        analyticsSwitch.checked = false;
+        smappSwitch.checked = false;
+        desktopPayoutsSwitch.checked = false;
+        desktopUISwitch.checked = false;
+        desktopAnalyticsSwitch.checked = false;
+        mobilePayoutsSwitch.checked = false;
+        mobileUISwitch.checked = false;
+        mobileAnalyticsSwitch.checked = false;
+    }
+    updateOutput();
+}
+
+function toggleSanitySwitch(sanitySwitch) {
+    const row = sanitySwitch.closest('tr');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
+    const payoutsSwitch = row.querySelector('.payouts-switch');
+    const uiSwitch = row.querySelector('.ui-switch');
+    const analyticsSwitch = row.querySelector('.analytics-switch');
+    const smappSwitch = row.querySelector('.smapp-switch');
+    const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
+    const desktopUISwitch = row.querySelector('.desktop-ui-switch');
+    const desktopAnalyticsSwitch = row.querySelector('.desktop-analytics-switch');
+    const mobilePayoutsSwitch = row.querySelector('.mobile-payouts-switch');
+    const mobileUISwitch = row.querySelector('.mobile-ui-switch');
+    const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
+
+    if (sanitySwitch.checked) {
+        regressionSwitch.checked = false;
+        smokeSwitch.checked = false;
+        payoutsSwitch.checked = false;
+        uiSwitch.checked = false;
+        analyticsSwitch.checked = false;
+        smappSwitch.checked = false;
+        desktopPayoutsSwitch.checked = false;
+        desktopUISwitch.checked = false;
+        desktopAnalyticsSwitch.checked = false;
+        mobilePayoutsSwitch.checked = false;
+        mobileUISwitch.checked = false;
+        mobileAnalyticsSwitch.checked = false;
+    }
+    updateOutput();
+}
+
+function toggleSmokeSwitch(smokeSwitch) {
+    const row = smokeSwitch.closest('tr');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const payoutsSwitch = row.querySelector('.payouts-switch');
+    const uiSwitch = row.querySelector('.ui-switch');
+    const analyticsSwitch = row.querySelector('.analytics-switch');
+    const smappSwitch = row.querySelector('.smapp-switch');
+    const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
+    const desktopUISwitch = row.querySelector('.desktop-ui-switch');
+    const desktopAnalyticsSwitch = row.querySelector('.desktop-analytics-switch');
+    const mobilePayoutsSwitch = row.querySelector('.mobile-payouts-switch');
+    const mobileUISwitch = row.querySelector('.mobile-ui-switch');
+    const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
+
+    if (smokeSwitch.checked) {
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
@@ -235,12 +367,16 @@ function toggleAllSwitch(allSwitch) {
 
 function togglePayoutsSwitch(payoutsSwitch) {
     const row = payoutsSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
     const mobilePayoutsSwitch = row.querySelector('.mobile-payouts-switch');
 
     if (payoutsSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         desktopPayoutsSwitch.checked = false;
         mobilePayoutsSwitch.checked = false;
     } else if (desktopPayoutsSwitch.checked || mobilePayoutsSwitch.checked) {
@@ -251,12 +387,16 @@ function togglePayoutsSwitch(payoutsSwitch) {
 
 function toggleUISwitch(uiSwitch) {
     const row = uiSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const desktopUISwitch = row.querySelector('.desktop-ui-switch');
     const mobileUISwitch = row.querySelector('.mobile-ui-switch');
 
     if (uiSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         desktopUISwitch.checked = false;
         mobileUISwitch.checked = false;
     } else if (desktopUISwitch.checked || mobileUISwitch.checked) {
@@ -267,12 +407,16 @@ function toggleUISwitch(uiSwitch) {
 
 function toggleAnalyticsSwitch(analyticsSwitch) {
     const row = analyticsSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const desktopAnalyticsSwitch = row.querySelector('.desktop-analytics-switch');
     const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
 
     if (analyticsSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         desktopAnalyticsSwitch.checked = false;
         mobileAnalyticsSwitch.checked = false;
     } else if (desktopAnalyticsSwitch.checked || mobileAnalyticsSwitch.checked) {
@@ -283,19 +427,27 @@ function toggleAnalyticsSwitch(analyticsSwitch) {
 
 function toggleSMAppSwitch(smappSwitch) {
     const row = smappSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     if (smappSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
     }
     updateOutput();
 }
 
 function toggleDesktopPayoutsSwitch(desktopPayoutsSwitch) {
     const row = desktopPayoutsSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const payoutsSwitch = row.querySelector('.payouts-switch');
     if (desktopPayoutsSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         payoutsSwitch.checked = false;
     }
     updateOutput();
@@ -303,10 +455,14 @@ function toggleDesktopPayoutsSwitch(desktopPayoutsSwitch) {
 
 function toggleMobilePayoutsSwitch(mobilePayoutsSwitch) {
     const row = mobilePayoutsSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const payoutsSwitch = row.querySelector('.payouts-switch');
     if (mobilePayoutsSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         payoutsSwitch.checked = false;
     }
     updateOutput();
@@ -314,10 +470,14 @@ function toggleMobilePayoutsSwitch(mobilePayoutsSwitch) {
 
 function toggleDesktopUISwitch(desktopUISwitch) {
     const row = desktopUISwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const uiSwitch = row.querySelector('.ui-switch');
     if (desktopUISwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         uiSwitch.checked = false;
     }
     updateOutput();
@@ -325,10 +485,14 @@ function toggleDesktopUISwitch(desktopUISwitch) {
 
 function toggleMobileUISwitch(mobileUISwitch) {
     const row = mobileUISwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const uiSwitch = row.querySelector('.ui-switch');
     if (mobileUISwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         uiSwitch.checked = false;
     }
     updateOutput();
@@ -336,10 +500,14 @@ function toggleMobileUISwitch(mobileUISwitch) {
 
 function toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch) {
     const row = desktopAnalyticsSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const analyticsSwitch = row.querySelector('.analytics-switch');
     if (desktopAnalyticsSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         analyticsSwitch.checked = false;
     }
     updateOutput();
@@ -347,10 +515,14 @@ function toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch) {
 
 function toggleMobileAnalyticsSwitch(mobileAnalyticsSwitch) {
     const row = mobileAnalyticsSwitch.closest('tr');
-    const allSwitch = row.querySelector('.all-switch');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
     const analyticsSwitch = row.querySelector('.analytics-switch');
     if (mobileAnalyticsSwitch.checked) {
-        allSwitch.checked = false;
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
         analyticsSwitch.checked = false;
     }
     updateOutput();
@@ -370,15 +542,32 @@ function updateOutput() {
         const runSwitch = row.querySelector('input[type="checkbox"]:first-child');
         if (runSwitch.checked) {
             const internalName = row.dataset.internalName;
-            const allSwitch = row.querySelector('.all-switch');
+            const regressionSwitch = row.querySelector('.regression-switch');
+            const sanitySwitch = row.querySelector('.sanity-switch');
+            const smokeSwitch = row.querySelector('.smoke-switch');
             const selectedColumns = [];
 
-            if (allSwitch.checked) {
-                selectedColumns.push('all');
-            } else {
+            // Check for regression (was all)
+            if (regressionSwitch && regressionSwitch.checked) {
+                selectedColumns.push('regression');
+            }
+            // Check for sanity
+            else if (sanitySwitch && sanitySwitch.checked) {
+                selectedColumns.push('sanity');
+            }
+            // Check for smoke
+            else if (smokeSwitch && smokeSwitch.checked) {
+                selectedColumns.push('smoke');
+            }
+            else {
                 const switches = row.querySelectorAll('input[type="checkbox"]:checked');
                 switches.forEach(switchInput => {
-                    if (switchInput !== runSwitch && switchInput !== allSwitch) {
+                    if (
+                        switchInput !== runSwitch &&
+                        switchInput !== regressionSwitch &&
+                        switchInput !== sanitySwitch &&
+                        switchInput !== smokeSwitch
+                    ) {
                         const columnName = switchInput.getAttribute('data-column');
                         selectedColumns.push(columnName);
                     }
@@ -402,10 +591,10 @@ function updateOutput() {
 
                 if (hasAllColumns) {
                     selectedColumns.length = 0;
-                    selectedColumns.push('all');
+                    selectedColumns.push('regression');
                 } else if (hasPayoutsUiAnalyticsSmapp) {
                     selectedColumns.length = 0;
-                    selectedColumns.push('all');
+                    selectedColumns.push('regression');
                 } else {
                     if (hasAllDesktop) {
                         selectedColumns.splice(selectedColumns.indexOf('smapp'), 1);
@@ -585,7 +774,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td class="game-name-cell">${game.display_name}</td>
                 <td>
                     <label class="switch">
-                        <input type="checkbox" class="all-switch" disabled onchange="toggleAllSwitch(this)" data-column="all">
+                        <input type="checkbox" class="regression-switch" disabled onchange="toggleRegressionSwitch(this)" data-column="regression">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="sanity-switch" disabled onchange="toggleSanitySwitch(this)" data-column="sanity">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="smoke-switch" disabled onchange="toggleSmokeSwitch(this)" data-column="smoke">
                         <span class="slider round"></span>
                     </label>
                 </td>
