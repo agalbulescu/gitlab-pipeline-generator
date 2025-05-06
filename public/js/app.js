@@ -623,12 +623,18 @@ function updateOutput() {
 }
 
 function renderTestSummaryChart(containerId, summary, jobName) {
+    const wrapper = document.getElementById(containerId);
+    if (!wrapper) {
+        console.warn(`⚠️ Chart container not found: ${containerId}`);
+        return;
+    }
+
     const canvas = document.createElement('canvas');
     canvas.id = `${containerId}-chart`;
-    canvas.style.maxWidth = '500px';
+    // canvas.style.maxWidth = '500px';
+    // canvas.style.height = '120px';
     canvas.style.marginTop = '15px';
 
-    const wrapper = document.getElementById(containerId);
     wrapper.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
@@ -652,7 +658,64 @@ function renderTestSummaryChart(containerId, summary, jobName) {
                 }
             },
             scales: {
-                y: { beginAtZero: true }
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            if (Number.isInteger(value)) {
+                                return value;
+                            }
+                            return '';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderSearchSummaryChart(containerId, summary) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.id = `${containerId}-canvas`;
+    container.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Passed', 'Failed', 'Skipped'],
+            datasets: [{
+                label: 'Pipeline Summary',
+                data: [summary.passed, summary.failed, summary.skipped],
+                backgroundColor: ['#4CAF50', '#f44336', '#FF9800']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Pipeline Test Summary'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            if (Number.isInteger(value)) {
+                                return value;
+                            }
+                            return '';
+                        }
+                    }
+                }
             }
         }
     });
@@ -686,51 +749,6 @@ async function triggerPipeline(branch) {
     }
 }
 
-async function checkPipelineStatus(pipelineId) {
-    try {
-        const response = await fetch(`/api/pipeline-status/${pipelineId}`);
-        if (!response.ok) throw new Error('Failed to check pipeline status');
-        return await response.json();
-    } catch (error) {
-        console.error('Pipeline status error:', error);
-        throw error;
-    }
-}
-
-// Add pipeline status polling
-async function pollPipelineStatus(pipelineId) {
-    const interval = setInterval(async () => {
-        try {
-            const status = await checkPipelineStatus(pipelineId);
-            
-            updatePipelineStatusDisplay(status);
-            
-            if (status.status === 'success' || 
-                status.status === 'failed' || 
-                status.status === 'canceled') {
-                clearInterval(interval);
-            }
-        } catch (error) {
-            console.error('Polling error:', error);
-            clearInterval(interval);
-        }
-    }, 5000); // Poll every 5 seconds
-}
-
-function updatePipelineStatusDisplay(status) {
-    const progressBar = document.querySelector('.pipeline-progress .progress');
-    const progressText = document.querySelector('.pipeline-progress .progress-text');
-    
-    progressBar.style.width = `${status.progress}%`;
-    progressText.textContent = `Status: ${status.status} (${status.progress}% complete)`;
-    
-    if (status.status === 'success') {
-        progressBar.style.backgroundColor = '#4CAF50';
-    } else if (status.status === 'failed') {
-        progressBar.style.backgroundColor = '#f44336';
-    }
-}
-
 // Pipeline generation and triggering functionality
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM elements
@@ -742,6 +760,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutBtn = document.getElementById('logout-btn');
     const currentUserSpan = document.getElementById('current-user');
     const generateBtn = document.getElementById('generate-btn');
+    const table = document.getElementById('game-table');
+    const thead = table.querySelector('thead');
+
+    // Add sticky class
+    thead.classList.add('sticky-header');
+
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    thead.classList.add('sticky-active');
+                } else {
+                    thead.classList.remove('sticky-active');
+                }
+            });
+        },
+        { root: null, threshold: 0, rootMargin: `-${thead.offsetHeight}px 0px 0px 0px` }
+    );
+
+    observer.observe(table);
 
     // Store generated pipeline
     let generatedPipeline = null;
@@ -874,16 +912,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Hook elements
     const adminSection = document.getElementById('admin-section');
     const createUserBtn = document.getElementById('create-user-btn');
-    const newUsername = document.getElementById('new-username');
-    const newName = document.getElementById('new-name');
-    const newPassword = document.getElementById('new-password');
+    const newUUsername = document.getElementById('new-user-username');
+    const newUName = document.getElementById('new-user-name');
+    const newUPassword = document.getElementById('new-user-password');
     const adminFeedback = document.getElementById('admin-feedback');
     const userList = document.getElementById('user-list');
 
     createUserBtn.addEventListener('click', async () => {
-        const username = newUsername.value.trim();
-        const name = newName.value.trim();
-        const password = newPassword.value.trim();
+        const username = newUUsername.value.trim();
+        const name = newUName.value.trim();
+        const password = newUPassword.value.trim();
         if (!username || !name || !password) {
             adminFeedback.textContent = '⚠️ Please fill all fields';
             adminFeedback.style.color = 'red';
@@ -902,9 +940,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminFeedback.textContent = '✅ User created successfully';
             adminFeedback.style.color = 'green';
 
-            newUsername.value = '';
-            newName.value = '';
-            newPassword.value = '';
+            newUUsername.value = '';
+            newUName.value = '';
+            newUPassword.value = '';
 
             loadUserList(); // refresh list
         } catch (err) {
@@ -921,6 +959,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoggedOutState();
     }
     
+    document.getElementById('login-form').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            handleLogin();
+        }
+    });
     // Event listeners
     loginBtn.addEventListener('click', handleLogin);
     logoutBtn.addEventListener('click', async () => {
@@ -1068,6 +1111,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }    
 
+    // Show the form when clicking "Change Password"
+    document.getElementById('show-change-password-btn').addEventListener('click', () => {
+        document.getElementById('change-password-form').style.display = 'flex';
+    });
+
+    // Hide the form when clicking "Cancel"
+    document.getElementById('cancel-password-btn').addEventListener('click', () => {
+        document.getElementById('change-password-form').style.display = 'none';
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+    });
+
+    // Handle password change
+    document.getElementById('save-password-btn').addEventListener('click', async () => {
+        const currentPassword = document.getElementById('current-password').value;
+        const newPassword = document.getElementById('new-password').value;
+
+        if (!currentPassword || !newPassword) {
+            alert('Please fill out both fields.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword, newPassword }),
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error || 'Failed to change password');
+
+            alert('Password changed successfully!');
+            document.getElementById('change-password-form').style.display = 'none';
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+        } catch (err) {
+            alert(`Error: ${err.message}`);
+        }
+    });
+
     // UI state functions
     function showLoggedInState(user) {
         if (user.isAdmin) {
@@ -1084,6 +1170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ✅ Only fetch branches after login/session confirmed
             fetchBranches();
         }
+        loginForm.classList.remove('centered');
         loginForm.style.display = 'none';
         loggedInUser.style.display = 'flex';
         currentUserSpan.textContent = `Logged in as: ${user.name}`;
@@ -1091,6 +1178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showLoggedOutState() {
         loginForm.style.display = 'flex';
+        loginForm.classList.add('centered');
         loggedInUser.style.display = 'none';
         currentUserSpan.textContent = '';
         document.getElementById('generate-btn').disabled = true;
@@ -1315,6 +1403,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         pipelineStatus.appendChild(messageDiv);
     }    
+    
+    function updatePipelineStatusDisplay(status) {
+        const pipelineStatus = document.getElementById('pipeline-status');
+        let statusContainer = document.getElementById('pipeline-status-container');
+    
+        if (!statusContainer) {
+            statusContainer = document.createElement('div');
+            statusContainer.id = 'pipeline-status-container';
+            pipelineStatus.appendChild(statusContainer);
+        }
+    
+        statusContainer.innerHTML = `
+        <div class="status-message ${status.status}">
+            <strong>Pipeline Status:</strong> ${status.status.toUpperCase()}<br>
+            <strong>Progress:</strong> ${status.progress}% ${status.status === 'success' ? '✅' : status.status === 'failed' ? '❌' : '⏳'}<br>
+            ${status.web_url ? `<a href="${status.web_url}" target="_blank">View in GitLab</a>` : ''}
+        </div>
+        <div class="progress-container">
+            <div class="progress"></div>
+        </div>
+        `;
+        
+        // Apply progress styling AFTER the DOM is ready
+        const progressBar = statusContainer.querySelector('.progress');
+        progressBar.style.width = `${status.progress}%`;
+    
+        if (status.status === 'success') {
+            progressBar.style.backgroundColor = '#4CAF50'; // green
+        } else if (status.status === 'failed') {
+            progressBar.style.backgroundColor = '#f44336'; // red
+        } else if (status.status === 'running') {
+            progressBar.style.backgroundColor = '#2196F3'; // blue
+        } else {
+            progressBar.style.backgroundColor = '#9E9E9E'; // gray fallback
+        }
+    }    
 
     async function pollPipelineStatus(pipelineId) {
         const interval = setInterval(async () => {
@@ -1325,160 +1449,125 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const status = await response.json();
                 updatePipelineStatusDisplay(status);
                 
-                // Stop polling if pipeline completes
                 if (['success', 'failed', 'canceled'].includes(status.status)) {
                     clearInterval(interval);
-                
-                    // Refresh UI one last time
-                    setTimeout(() => {
-                        updatePipelineStatusDisplay(status);
-                        loadAndDisplayArtifacts(status.jobs); // 🔥 Load the results
-                    }, 1000);
+
+                    // ✅ Process artifacts for each job
+                    for (const job of status.jobs) {
+                        if (!job.name.startsWith('test_')) continue;
+                        await fetch(`/api/pipeline-artifacts/${job.id}`);  // trigger backend parser
+                    }
+    
+                    // ✅ Wait 2-3 seconds to let backend finish inserts
+                    setTimeout(async () => {
+                        try {
+                            const summaryRes = await fetch(`/api/pipeline-summary/${pipelineId}`);
+                            if (!summaryRes.ok) throw new Error('Failed to fetch summary');
+                            const { jobs } = await summaryRes.json();
+    
+                            loadAndDisplayArtifacts(jobs);
+                        } catch (error) {
+                            console.error('Summary fetch error:', error);
+                            showPipelineStatus('Failed to load test summary', 'error');
+                        }
+                    }, 5000); // wait 5 sec before summary fetch
                 }
-                
             } catch (error) {
                 clearInterval(interval);
                 console.error('Polling error:', error);
-                showPipelineStatus('Pipeline status updates stopped', 'error');
+                showPipelineStatus('Pipeline updates stopped', 'error');
             }
-        }, 10000); // Poll every 10 seconds
+        }, 10000); // Poll every 10 sec
+    }    
+    
+    async function fetchAndProcessArtifacts(jobs) {
+        for (const job of jobs) {
+            if (!job.name.startsWith('test_')) continue;
+            try {
+                await fetch(`/api/pipeline-artifacts/${job.id}`);
+            } catch (err) {
+                console.warn(`Artifact process failed for ${job.id}: ${err.message}`);
+            }
+        }
     }
     
-    function updatePipelineStatusDisplay(status) {
-        // Get or create status container
-        let statusContainer = document.getElementById('pipeline-status-container');
-        if (!statusContainer) {
-            statusContainer = document.createElement('div');
-            statusContainer.id = 'pipeline-status-container';
-            document.getElementById('pipeline-status').appendChild(statusContainer);
-        }
-    
-        // Update progress bar
-        const progressBar = document.querySelector('.progress-bar .progress');
-        if (progressBar) {
-            progressBar.style.width = `${status.progress}%`;
-            progressBar.style.backgroundColor = 
-                status.status === 'success' ? '#4CAF50' :
-                status.status === 'failed' ? '#f44336' : '#2196F3';
-        }
-    
-        // Update status text
-        statusContainer.innerHTML = `
-            <div class="status-message ${status.status}">
-                <strong>Pipeline Status:</strong> ${status.status.toUpperCase()}<br>
-                <strong>Progress:</strong> ${status.progress}%<br>
-                ${status.web_url ? `<a href="${status.web_url}" target="_blank">View in GitLab</a>` : ''}
-                ${status.status === 'success' ? '✅' : status.status === 'failed' ? '❌' : '⏳'}
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress" style="width: ${status.progress}%"></div>
-                </div>
-            </div>
-        `;
-    }
-
     async function loadAndDisplayArtifacts(jobs) {
         const infoContainer = document.getElementById('pipeline-info');
-        const existing = document.getElementById('test-artifacts');
-        if (existing) existing.remove();
+        document.getElementById('test-artifacts')?.remove();
     
-        const resultsWrapper = document.createElement('div');
-        resultsWrapper.id = 'test-artifacts';
+        const wrapper = document.createElement('div');
+        wrapper.id = 'test-artifacts';
     
         for (const job of jobs) {
-            if (!['success', 'failed'].includes(job.status)) continue;
+            if (!job.name || !job.name.startsWith('test_')) continue;
     
-            const response = await fetch(`/api/pipeline-artifacts/${job.id}`);
-            if (!response.ok) continue;
-    
-            const { artifacts } = await response.json();
-    
-            const jobBox = document.createElement('div');
-            jobBox.classList.add('job-artifacts');
+            const box = document.createElement('div');
+            box.classList.add('job-artifacts');
     
             const title = document.createElement('h4');
             title.textContent = `Job: ${job.name}`;
-            jobBox.appendChild(title);
+            box.appendChild(title);
     
-            for (const [filename, xmlContent] of Object.entries(artifacts)) {
-                const summary = parseJUnitXmlSummary(xmlContent);
-                const summaryBox = document.createElement('div');
-                summaryBox.className = 'artifact-summary';
-    
-                const chartContainerId = `${job.name}-${filename}-chart-container`.replace(/[^a-zA-Z0-9-_]/g, '_');
-                summaryBox.id = chartContainerId;
-    
-                summaryBox.innerHTML = `
-                    <div><strong>${filename}</strong></div>
-                    <div>Total: ${summary.tests}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
-                    <div>Duration: ${summary.time}s</div>
-                    ${
-                        summary.failures.length > 0
-                            ? `<ul style="margin-top: 8px;">${summary.failures.map(f => `<li>${f}</li>`).join('')}</ul>`
-                            : '<em style="color:gray;">No failures</em>'
-                    }
-                `;
-    
-                // Append summary and render chart
-                jobBox.appendChild(summaryBox);
-                renderTestSummaryChart(chartContainerId, summary, job.name);
-    
-                // Raw XML toggle
-                const toggle = document.createElement('details');
-                toggle.style.marginTop = '8px';
-                const summaryEl = document.createElement('summary');
-                summaryEl.textContent = 'View raw XML';
-                const pre = document.createElement('pre');
-                pre.textContent = xmlContent;
-                pre.style.maxHeight = '250px';
-                pre.style.overflowY = 'auto';
-                pre.style.backgroundColor = '#1e1e1e';
-                pre.style.color = '#ccc';
-                pre.style.padding = '10px';
-                pre.style.border = '1px solid #444';
-    
-                toggle.appendChild(summaryEl);
-                toggle.appendChild(pre);
-    
-                jobBox.appendChild(toggle);
+            const response = await fetch(`/api/pipeline-artifacts/${job.id}`);
+            if (!response.ok) {
+                box.innerHTML += '<div style="color:gray;">No artifact data available</div>';
+                wrapper.appendChild(box);
+                continue;
             }
     
-            resultsWrapper.appendChild(jobBox);
+            const { artifacts } = await response.json();
+    
+            if (artifacts.initial_results && artifacts.initial_results.length > 0) {
+                const summary = summarizeResults(artifacts.initial_results);
+                const summaryBox = document.createElement('div');
+                summaryBox.className = 'artifact-summary';
+                summaryBox.innerHTML = `
+                    <h5>Initial Run</h5>
+                    <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                `;
+                const chartContainer = document.createElement('div');
+                chartContainer.id = `chart-initial-${job.id}`;
+                chartContainer.style.maxWidth = '500px';
+                box.appendChild(summaryBox);
+                box.appendChild(chartContainer);
+                setTimeout(() => {
+                    renderTestSummaryChart(`chart-initial-${job.id}`, summary, `${job.name} Initial`);
+                }, 0);
+            }
+    
+            if (artifacts.rerun_results && artifacts.rerun_results.length > 0) {
+                const summary = summarizeResults(artifacts.rerun_results);
+                const summaryBox = document.createElement('div');
+                summaryBox.className = 'artifact-summary';
+                summaryBox.innerHTML = `
+                    <h5>Re-run</h5>
+                    <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                `;
+                const chartContainer = document.createElement('div');
+                chartContainer.id = `chart-rerun-${job.id}`;
+                chartContainer.style.maxWidth = '500px';
+                box.appendChild(summaryBox);
+                box.appendChild(chartContainer);
+                setTimeout(() => {
+                    renderTestSummaryChart(`chart-rerun-${job.id}`, summary, `${job.name} Re-run`);
+                }, 0);
+            }
+    
+            wrapper.appendChild(box);
         }
     
-        infoContainer.appendChild(resultsWrapper);
-    }    
-
-    function parseJUnitXmlSummary(xmlString) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xmlString, 'application/xml');
-    
-        const testsuite = doc.querySelector('testsuite');
-        const tests = parseInt(testsuite?.getAttribute('tests') || '0');
-        const failures = parseInt(testsuite?.getAttribute('failures') || '0');
-        const skipped = parseInt(testsuite?.getAttribute('skipped') || '0');
-        const errors = parseInt(testsuite?.getAttribute('errors') || '0');
-        const time = parseFloat(testsuite?.getAttribute('time') || '0');
-    
-        const failedTests = Array.from(doc.querySelectorAll('testcase'))
-            .filter(tc => tc.querySelector('failure'))
-            .map(tc => {
-                const classname = tc.getAttribute('classname') || '';
-                const name = tc.getAttribute('name') || '';
-                return `${classname} :: ${name}`;
-            });
-    
-        return {
-            tests,
-            failed: failures + errors,
-            passed: tests - failures - errors - skipped,
-            skipped,
-            time,
-            failures: failedTests
-        };
+        infoContainer.appendChild(wrapper);
     }
-
+    
+    function summarizeResults(results) {
+        const summary = { total: 0, passed: 0, failed: 0, skipped: 0 };
+        results.forEach(r => {
+            summary.total++;
+            summary[r.status]++;
+        });
+        return summary;
+    }    
+    
     document.getElementById('search-btn').addEventListener('click', async () => {
         const searchId = document.getElementById('search-id').value.trim();
         const resultsDiv = document.getElementById('search-results');
@@ -1493,25 +1582,74 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch(`/api/pipeline-summary/${searchId}`);
             if (!response.ok) throw new Error('Not found');
     
-            const { pipeline, jobs } = await response.json();
+            const { pipeline, jobs, summary } = await response.json();
     
-            const summaryHtml = `
+            let summaryHtml = `
                 <h4>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h4>
-                <p>Ref: <strong>${pipeline.ref}</strong>, Created: ${new Date(pipeline.created_at).toLocaleString()}</p>
-                <ul>
-                    ${jobs.map(job => `
-                        <li>
-                            <strong>${job.job_name}</strong>: ${job.status} (${job.total_tests} tests, ${job.failed_tests} failed)
-                        </li>
-                    `).join('')}
-                </ul>
+                <p>Ref: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
+                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
+                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div>
             `;
     
             resultsDiv.innerHTML = summaryHtml;
+    
+            // Render overall pipeline chart
+            renderSearchSummaryChart('search-summary-chart', summary);
+    
+            // Loop through jobs and render summaries + charts
+            for (const job of jobs) {
+                if (!job.name || !job.name.startsWith('test_')) continue;
+    
+                const jobBox = document.createElement('div');
+                jobBox.classList.add('job-summary');
+                jobBox.innerHTML = `
+                    <strong>${job.name}</strong>: ${job.status}
+                    (${job.total_tests} tests, ${job.failed_tests} failed)
+                    <div id="chart-search-${job.id}" style="max-width: 500px; height: 120px; margin-top: 10px;"></div>
+                `;
+    
+                resultsDiv.appendChild(jobBox);
+    
+                const artifactsRes = await fetch(`/api/pipeline-artifacts/${job.id}`);
+                if (!artifactsRes.ok) continue;
+    
+                const { artifacts } = await artifactsRes.json();
+    
+                if (artifacts.initial_results && artifacts.initial_results.length > 0) {
+                    const initialSummary = summarizeResults(artifacts.initial_results);
+                    setTimeout(() => {
+                        renderTestSummaryChart(`chart-search-${job.id}`, initialSummary, `${job.name} Initial`);
+                    }, 0);
+                }
+    
+                if (artifacts.rerun_results && artifacts.rerun_results.length > 0) {
+                    const rerunContainerId = `chart-search-${job.id}-rerun`;
+    
+                    const rerunLabel = document.createElement('div');
+                    rerunLabel.textContent = 'Re-run';
+                    rerunLabel.style.fontWeight = 'bold';
+                    rerunLabel.style.marginTop = '5px';
+    
+                    const rerunContainer = document.createElement('div');
+                    rerunContainer.id = rerunContainerId;
+                    rerunContainer.style.maxWidth = '500px';
+                    // rerunContainer.style.height = '120px';
+                    rerunContainer.style.marginTop = '10px';
+    
+                    jobBox.appendChild(rerunLabel);
+                    jobBox.appendChild(rerunContainer);
+    
+                    const rerunSummary = summarizeResults(artifacts.rerun_results);
+                    setTimeout(() => {
+                        renderTestSummaryChart(rerunContainerId, rerunSummary, `${job.name} Re-run`);
+                    }, 0);
+                }
+            }
         } catch (err) {
             console.error('Search error:', err);
             resultsDiv.innerHTML = `<p style="color:red;">No data found for ID: ${searchId}</p>`;
         }
     });
+    
     
 });

@@ -46,6 +46,19 @@ async function initDatabase() {
             );
         `);
         console.log('✅ Jobs table ensured');
+        // Create test results table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS test_results (
+                id SERIAL PRIMARY KEY,
+                job_id INTEGER REFERENCES jobs(id),
+                name TEXT,
+                classname TEXT,
+                status TEXT,
+                time FLOAT,
+                message TEXT
+            );
+        `);
+        console.log('✅ Test Results table ensured');
         console.log('✅ Database completely ensured.');
     } catch (err) {
         console.error('❌ Error initializing database:', err);

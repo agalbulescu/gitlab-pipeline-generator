@@ -1,6 +1,9 @@
 const express = require('express');
 const session = require('express-session');
-const AdmZip = require('adm-zip'); 
+const AdmZip = require('adm-zip');
+const { XMLParser } = require('fast-xml-parser');
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
 
 const path = require('path');
 require('dotenv').config();
@@ -115,8 +118,15 @@ app.post('/api/users', async (req, res) => {
     }
 
     const { username, password, name } = req.body;
-    await db.query('INSERT INTO users (username, password, name) VALUES ($1, $2, $3)', [username, password, name]);
-    res.json({ success: true });
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        await db.query('INSERT INTO users (username, password, name) VALUES ($1, $2, $3)', [username, hashedPassword, name]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Failed to create user:', err);
+        res.status(500).json({ error: 'Failed to create user' });
+    }
 });
 
 app.delete('/api/users/:id', async (req, res) => {
@@ -182,13 +192,12 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Check admin first
         if (username === ADMIN_USERNAME) {
             if (password !== ADMIN_PASSWORD) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            req.session.userId = 0; // special ID for admin
+            req.session.userId = 0;
             req.session.username = ADMIN_USERNAME;
             req.session.name = 'Administrator';
             req.session.isAdmin = true;
@@ -205,11 +214,15 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        // Non-admin (from DB)
         const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
 
-        if (!user || user.password !== password) {
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -235,11 +248,54 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-
 app.post('/api/logout', (req, res) => {
     req.session.destroy(() => {
         res.json({ success: true });
     });
+});
+
+app.post('/api/change-password', async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!req.session || !req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const userId = req.session.userId;
+
+    try {
+        const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+        const user = result.rows[0];
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Admin check (admin password is not in DB)
+        if (req.session.isAdmin) {
+            if (currentPassword !== ADMIN_PASSWORD) {
+                return res.status(401).json({ error: 'Invalid current password' });
+            }
+
+            // NOTE: Here you could update ADMIN_PASSWORD in env/config, but usually admins are managed outside DB.
+            return res.status(400).json({ error: 'Admin password change is not supported via API' });
+        }
+
+        // Verify current password
+        const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!passwordMatch) {
+            return res.status(401).json({ error: 'Invalid current password' });
+        }
+
+        // Hash new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+        await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedNewPassword, userId]);
+
+        res.json({ success: true, message: 'Password changed successfully' });
+    } catch (err) {
+        console.error('❌ Change password error:', err);
+        res.status(500).json({ error: 'Failed to change password' });
+    }
 });
 
 // Session check middleware (to protect routes)
@@ -300,220 +356,6 @@ app.get('/api/check-session', async (req, res) => {
     }
 });
 
-// API endpoint to generate pipeline YML
-app.post('/api/generate-pipeline', (req, res) => {
-    const { selectedGames, environment } = req.body;
-    
-    if (!selectedGames || !Array.isArray(selectedGames)) {
-        return res.status(400).json({ error: 'Invalid game selection' });
-    }
-    
-    try {
-        const pipelineYml = generatePipelineYml(selectedGames, environment);
-        latestGeneratedPipelineYml = pipelineYml;
-        res.json({ pipelineYml });
-    } catch (error) {
-        console.error('Pipeline generation error:', error);
-        res.status(500).json({ error: 'Failed to generate pipeline' });
-    }
-});
-
-// Secure endpoint to serve the generated pipeline YAML
-app.get('/generated-ci/:token.yml', (req, res) => {
-    const { token } = req.params;
-
-    if (token !== GITLAB_CONFIG.PUBLIC_YML_ACCESS_TOKEN) {
-        return res.status(403).send('Forbidden: Invalid token');
-    }
-
-    // Optionally make it look like a file for GitLab or browsers
-    res.setHeader('Content-Disposition', `inline; filename="${token}.yml"`);
-
-    // Set the content type to YAML and send the content
-    res.type('text/yaml').send(latestGeneratedPipelineYml);
-});
-
-// Trigger a new pipeline using trigger token and include
-app.post('/api/trigger-pipeline', async (req, res) => {
-    try {
-        // const { branch, variables } = req.body;
-        const { branch } = req.body;
-
-        console.log('Triggering pipeline with:', {
-            ref: branch || 'main',
-            token: GITLAB_CONFIG.TRIGGER_TOKEN,
-            // variables: Object.entries(variables || {}).map(([key, value]) => ({ key, value }))
-        });
-        
-        const response = await fetch(
-            `${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/trigger/pipeline`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    ref: branch || 'main',
-                    token: GITLAB_CONFIG.TRIGGER_TOKEN
-                })
-            }
-        );
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('GitLab API Error:', errorText);
-            throw new Error(`Failed to trigger pipeline: ${errorText}`);
-        }
-
-        const pipelineData = await response.json();
-        res.json(pipelineData);
-    } catch (error) {
-        console.error('Pipeline trigger error:', error);
-        res.status(500).json({ 
-            error: error.message,
-            details: 'Failed to trigger pipeline'
-        });
-    }
-});
-
-// Get pipeline status
-
-app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
-    try {
-        const { pipelineId } = req.params;
-
-        // Fetch pipeline and job info from GitLab
-        const pipeline = await gitlabApiRequest(`/pipelines/${pipelineId}`);
-        const jobs = await gitlabApiRequest(`/pipelines/${pipelineId}/jobs`);
-
-        // Calculate progress
-        const totalJobs = jobs.length;
-        const completedJobs = jobs.filter(job => job.status === 'success' || job.status === 'failed').length;
-        const progress = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
-
-        // Insert pipeline info into DB
-        await db.query(
-            `INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at`,
-            [pipeline.id, pipeline.status, pipeline.ref, pipeline.sha, pipeline.created_at, pipeline.updated_at]
-        );
-
-        // Insert each job
-        for (const job of jobs) {
-            await db.query(
-                `INSERT INTO jobs (id, pipeline_id, name, status, stage, started_at, finished_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, finished_at = EXCLUDED.finished_at`,
-                [job.id, pipeline.id, job.name, job.status, job.stage, job.started_at, job.finished_at]
-            );
-        }
-
-        res.json({
-            ...pipeline,
-            progress,
-            jobs
-        });
-    } catch (error) {
-        console.error('Pipeline status error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/pipeline/:pipelineId', async (req, res) => {
-    try {
-        const pipelineId = parseInt(req.params.pipelineId, 10);
-        const pipelineResult = await db.query('SELECT * FROM pipelines WHERE pipeline_id = $1', [pipelineId]);
-        const jobsResult = await db.query('SELECT * FROM jobs WHERE pipeline_id = $1', [pipelineId]);
-
-        if (pipelineResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Pipeline not found' });
-        }
-
-        res.json({
-            pipeline: pipelineResult.rows[0],
-            jobs: jobsResult.rows
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch pipeline' });
-    }
-});
-
-app.get('/api/pipeline-summary/:id', async (req, res) => {
-    const { id } = req.params;
-    const db = require('./db');
-
-    try {
-        // Try as pipeline ID
-        let result = await db.query('SELECT * FROM pipelines WHERE pipeline_id = $1', [id]);
-        if (result.rowCount === 0) {
-            // Try as job ID
-            const jobResult = await db.query('SELECT * FROM jobs WHERE job_id = $1', [id]);
-            if (jobResult.rowCount === 0) return res.status(404).json({ error: 'Not found' });
-
-            const job = jobResult.rows[0];
-            return res.json({
-                pipeline: { pipeline_id: job.pipeline_id, status: job.status },
-                jobs: [job]
-            });
-        }
-
-        const pipeline = result.rows[0];
-        const jobsResult = await db.query('SELECT * FROM jobs WHERE pipeline_id = $1', [id]);
-
-        res.json({
-            pipeline,
-            jobs: jobsResult.rows
-        });
-    } catch (err) {
-        console.error('Summary fetch error:', err);
-        res.status(500).json({ error: 'Internal error' });
-    }
-});
-
-app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
-    const { jobId } = req.params;
-
-    try {
-        // 1. Get the artifact archive (zip)
-        const response = await fetch(`${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/jobs/${jobId}/artifacts`, {
-            headers: {
-                'PRIVATE-TOKEN': GITLAB_CONFIG.ACCESS_TOKEN
-            }
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Failed to fetch artifacts: ${errorText}`);
-        }
-
-        const buffer = await response.arrayBuffer();
-        const zip = new AdmZip(Buffer.from(buffer));
-
-        // 2. Look for result and rerun XMLs
-        const artifactFiles = zip.getEntries().filter(entry =>
-            entry.entryName.endsWith('.xml') &&
-            (entry.entryName.includes('results_') || entry.entryName.includes('rerun_'))
-        );
-
-        if (artifactFiles.length === 0) {
-            return res.status(404).json({ error: 'No relevant .xml files found in artifacts.' });
-        }
-
-        // 3. Extract contents
-        const artifacts = {};
-        artifactFiles.forEach(entry => {
-            artifacts[entry.entryName] = zip.readAsText(entry);
-        });
-
-        res.json({ success: true, artifacts });
-    } catch (error) {
-        console.error('Artifact fetch error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // Get project branches
 app.get('/api/branches', async (req, res) => {
     try {
@@ -553,6 +395,269 @@ app.get('/api/branches', async (req, res) => {
             error: error.message,
             details: 'Failed to retrieve branches from GitLab'
         });
+    }
+});
+
+// API endpoint to generate pipeline YML
+app.post('/api/generate-pipeline', (req, res) => {
+    const { selectedGames, environment } = req.body;
+    
+    if (!selectedGames || !Array.isArray(selectedGames)) {
+        return res.status(400).json({ error: 'Invalid game selection' });
+    }
+    
+    try {
+        const pipelineYml = generatePipelineYml(selectedGames, environment);
+        latestGeneratedPipelineYml = pipelineYml;
+        res.json({ pipelineYml });
+    } catch (error) {
+        console.error('Pipeline generation error:', error);
+        res.status(500).json({ error: 'Failed to generate pipeline' });
+    }
+});
+
+// Secure endpoint to serve the generated pipeline YAML
+app.get('/generated-ci/:token.yml', (req, res) => {
+    const { token } = req.params;
+
+    if (token !== GITLAB_CONFIG.PUBLIC_YML_ACCESS_TOKEN) {
+        return res.status(403).send('Forbidden: Invalid token');
+    }
+
+    const yamlContent = latestGeneratedPipelineYml.trim() || '# No pipeline available\n';
+
+    // Optionally make it look like a file for GitLab or browsers
+    res.setHeader('Content-Disposition', `inline; filename="${token}.yml"`);
+
+    // Set the content type to YAML and send the content
+    res.type('text/yaml').send(yamlContent);
+});
+
+// Trigger a new pipeline using trigger token and include
+app.post('/api/trigger-pipeline', async (req, res) => {
+    try {
+        // const { branch, variables } = req.body;
+        const { branch } = req.body;
+
+        if (!branch) {
+            return res.status(400).json({ error: 'Branch name is required' });
+        }
+
+        // console.log('Triggering pipeline with:', {
+        //     ref: branch || 'main',
+        //     token: GITLAB_CONFIG.TRIGGER_TOKEN,
+        //     // variables: Object.entries(variables || {}).map(([key, value]) => ({ key, value }))
+        // });
+        
+        const response = await fetch(
+            `${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/trigger/pipeline`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ref: branch || 'main',
+                    token: GITLAB_CONFIG.TRIGGER_TOKEN
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('GitLab API Error:', errorText);
+            throw new Error(`Failed to trigger pipeline: ${errorText}`);
+        }
+
+        const pipelineData = await response.json();
+
+        // CLEAR THE YAML AFTER TRIGGERING
+        latestGeneratedPipelineYml = '';
+
+        res.json(pipelineData);
+    } catch (error) {
+        console.error('Pipeline trigger error:', error);
+        res.status(500).json({ 
+            error: error.message,
+            details: 'Failed to trigger pipeline'
+        });
+    }
+});
+
+// === 1. Save pipeline + jobs (NO ARTIFACTS) ===
+app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
+    try {
+        const { pipelineId } = req.params;
+        const pipeline = await gitlabApiRequest(`/pipelines/${pipelineId}`);
+        const jobs = await gitlabApiRequest(`/pipelines/${pipelineId}/jobs`);
+
+        const totalJobs = jobs.length;
+        const completedJobs = jobs.filter(j => ['success', 'failed'].includes(j.status)).length;
+        const progress = totalJobs ? Math.round((completedJobs / totalJobs) * 100) : 0;
+
+        await db.query(`
+            INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
+        `, [pipeline.id, pipeline.status, pipeline.ref, pipeline.sha, pipeline.created_at, pipeline.updated_at]);
+
+        for (const job of jobs) {
+            if (!job.name.startsWith('test_')) continue;
+
+            await db.query(`
+                INSERT INTO jobs (id, pipeline_id, name, status, stage, started_at, finished_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, finished_at = EXCLUDED.finished_at
+            `, [job.id, pipeline.id, job.name, job.status, job.stage, job.started_at, job.finished_at]);
+        }
+
+        res.json({ ...pipeline, progress, jobs });
+    } catch (err) {
+        console.error('Pipeline status error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// === 2. Process artifacts and save test results ===
+app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
+    const { jobId } = req.params;
+    const parser = new XMLParser();
+
+    try {
+        const response = await fetch(`${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/jobs/${jobId}/artifacts`, {
+            headers: { 'PRIVATE-TOKEN': GITLAB_CONFIG.ACCESS_TOKEN }
+        });
+
+        if (!response.ok) return res.status(404).json({ error: 'No artifacts found' });
+
+        const buffer = await response.arrayBuffer();
+        const zip = new AdmZip(Buffer.from(buffer));
+        const artifactFiles = zip.getEntries().filter(e => e.entryName.endsWith('.xml'));
+
+        if (artifactFiles.length === 0) return res.status(404).json({ error: 'No .xml files found' });
+
+        const initialResults = [];
+        const rerunResults = [];
+
+        await db.query('DELETE FROM test_results WHERE job_id = $1', [jobId]);
+
+        for (const entry of artifactFiles) {
+            const xmlContent = zip.readAsText(entry);
+            const jsonObj = parser.parse(xmlContent);
+
+            let testsuites = [];
+            if (jsonObj.testsuite) testsuites = [jsonObj.testsuite];
+            else if (jsonObj.testsuites?.testsuite) {
+                testsuites = Array.isArray(jsonObj.testsuites.testsuite)
+                    ? jsonObj.testsuites.testsuite
+                    : [jsonObj.testsuites.testsuite];
+            }
+
+            const targetArray = entry.entryName.includes('rerun_') ? rerunResults : initialResults;
+
+            for (const suite of testsuites) {
+                if (!suite.testcase) continue;
+                const testcases = Array.isArray(suite.testcase) ? suite.testcase : [suite.testcase];
+
+                for (const tc of testcases) {
+                    const status = tc.failure ? 'failed' : tc.skipped ? 'skipped' : 'passed';
+                    const record = {
+                        name: tc['@_name'],
+                        classname: tc['@_classname'],
+                        status,
+                        time: parseFloat(tc['@_time']),
+                        message: tc.failure?.['#text'] || null
+                    };
+                    targetArray.push(record);
+
+                    await db.query(`
+                        INSERT INTO test_results (job_id, name, classname, status, time, message)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                    `, [jobId, record.name, record.classname, record.status, record.time, record.message]);
+                }
+            }
+        }
+
+        res.json({
+            success: true,
+            artifacts: {
+                initial_results: initialResults,
+                rerun_results: rerunResults
+            }
+        });
+    } catch (err) {
+        console.error('Artifact fetch error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// === 3. Get summary ===
+app.get('/api/pipeline-summary/:id', async (req, res) => {
+    const { id } = req.params;
+    const jobSummaries = [];
+    let pipelineSummary = { total: 0, passed: 0, failed: 0, skipped: 0 };
+
+    try {
+        let result = await db.query('SELECT * FROM pipelines WHERE id = $1', [id]);
+        let pipeline, jobsResult;
+
+        if (result.rowCount === 0) {
+            const jobResult = await db.query('SELECT * FROM jobs WHERE id = $1', [id]);
+            if (jobResult.rowCount === 0) return res.status(404).json({ error: 'Not found' });
+
+            const job = jobResult.rows[0];
+            const pipelineResult = await db.query('SELECT * FROM pipelines WHERE id = $1', [job.pipeline_id]);
+            pipeline = pipelineResult.rows[0];
+            jobsResult = await db.query('SELECT * FROM jobs WHERE pipeline_id = $1', [job.pipeline_id]);
+        } else {
+            pipeline = result.rows[0];
+            jobsResult = await db.query('SELECT * FROM jobs WHERE pipeline_id = $1', [pipeline.id]);
+        }
+
+        for (const job of jobsResult.rows) {
+            const testResult = await db.query(
+                `SELECT status, COUNT(*) AS count
+                 FROM test_results
+                 WHERE job_id = $1
+                 GROUP BY status`,
+                [job.id]
+            );
+
+            let total = 0, passed = 0, failed = 0, skipped = 0;
+            testResult.rows.forEach(r => {
+                total += parseInt(r.count);
+                if (r.status === 'passed') passed += parseInt(r.count);
+                if (r.status === 'failed') failed += parseInt(r.count);
+                if (r.status === 'skipped') skipped += parseInt(r.count);
+            });
+
+            pipelineSummary.total += total;
+            pipelineSummary.passed += passed;
+            pipelineSummary.failed += failed;
+            pipelineSummary.skipped += skipped;
+
+            jobSummaries.push({
+                ...job,
+                total_tests: total,
+                passed_tests: passed,
+                failed_tests: failed,
+                skipped_tests: skipped
+            });
+        }
+
+        res.json({
+            pipeline: {
+                pipeline_id: pipeline.id,
+                status: pipeline.status,
+                ref: pipeline.ref,
+                created_at: pipeline.created_at
+            },
+            jobs: jobSummaries,
+            summary: pipelineSummary
+        });
+    } catch (err) {
+        console.error('Summary fetch error:', err);
+        res.status(500).json({ error: 'Internal error' });
     }
 });
 
@@ -614,9 +719,13 @@ test_${internalName}:
         > "$FAILED_FILES"
 
         # Extract test file paths from classnames and de-duplicate
+        if grep -q '<failure' "$RESULTS_XML"; then
         grep '<testcase' "$RESULTS_XML" | grep '<failure' -B1 | grep '<testcase' \\
-          | sed -n 's/.*classname="\\([^"]*\\)".*/\\1/p' \\
-          | sed 's/\\./\\//g' | sed 's/$/.py/' | sort -u > "$FAILED_FILES"
+            | sed -n 's/.*classname="\\([^"]*\\)".*/\\1/p' \\
+            | sed 's/\\./\\//g' | sed 's/$/.py/' | sort -u > "$FAILED_FILES"
+        else
+        echo "No <failure> tags found in $RESULTS_XML, skipping failure parsing."
+        fi
 
         echo "Contents of failed test files:"
         cat "$FAILED_FILES"
@@ -694,10 +803,9 @@ notify_pipeline_end:
           "icon_emoji": ":gitlab:"
         }' $SLACK_WEBHOOK_URL
       fi
+  allow_failure: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "trigger"
-  dependencies:
-    - notify_pipeline_start
 `;
 
   return `
