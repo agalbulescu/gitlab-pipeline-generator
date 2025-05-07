@@ -11,7 +11,7 @@ async function initDatabase() {
                 name TEXT NOT NULL
             );
         `);
-        console.log('✅ Users table ensured');
+        // console.log('✅ Users');
         // Create games table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS games (
@@ -20,7 +20,7 @@ async function initDatabase() {
                 internal_name VARCHAR(255) NOT NULL UNIQUE
             )
         `);
-        console.log('✅ Games table ensured');
+        // console.log('✅ Games');
         // Create pipelines table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS pipelines (
@@ -32,7 +32,7 @@ async function initDatabase() {
                 updated_at TIMESTAMP
             );
         `);
-        console.log('✅ Pipelines table ensured');
+        // console.log('✅ Pipelines');
         // Create jobs table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS jobs (
@@ -42,10 +42,11 @@ async function initDatabase() {
                 status TEXT,
                 stage TEXT,
                 started_at TIMESTAMP,
-                finished_at TIMESTAMP
+                finished_at TIMESTAMP,
+                suites TEXT
             );
         `);
-        console.log('✅ Jobs table ensured');
+        // console.log('✅ Jobs');
         // Create test results table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS test_results (
@@ -58,8 +59,8 @@ async function initDatabase() {
                 message TEXT
             );
         `);
-        console.log('✅ Test Results table ensured');
-        console.log('✅ Database completely ensured.');
+        // console.log('✅ Test Results');
+        console.log('✅ Database fully ensured.');
     } catch (err) {
         console.error('❌ Error initializing database:', err);
         process.exit(1);

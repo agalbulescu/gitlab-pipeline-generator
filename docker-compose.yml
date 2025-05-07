@@ -10,7 +10,6 @@ services:
       - ADMIN_PASSWORD=yourSecretPassword
       - DATABASE_URL=postgres://postgres:postgres@pypipe-db:5432/pypipe
       - GITLAB_BASE_URL=https://gitlab.mydomain.com
-      - GITLAB_API_URL=https://gitlab.mydomain.com/api/v4
       - GITLAB_PROJECT_ID=123
       - GITLAB_ACCESS_TOKEN=this-is-the-access-token
       - GITLAB_PIPELINE_TRIGGER_TOKEN=this-is-the-trigger-token

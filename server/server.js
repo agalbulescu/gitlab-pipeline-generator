@@ -58,7 +58,6 @@ app.use('/api/protected', (req, res, next) => {
 // GitLab API Configuration
 const GITLAB_CONFIG = {
     BASE_URL: process.env.GITLAB_BASE_URL,
-    API_BASE_URL: process.env.GITLAB_API_URL,
     PROJECT_ID: process.env.GITLAB_PROJECT_ID,
     ACCESS_TOKEN: process.env.GITLAB_ACCESS_TOKEN,
     TRIGGER_TOKEN: process.env.GITLAB_PIPELINE_TRIGGER_TOKEN,
@@ -70,11 +69,11 @@ let latestGeneratedPipelineYml = '';
 // Helper function for GitLab API requests
 async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
     // Add validation for required configuration
-    if (!GITLAB_CONFIG.API_BASE_URL || !GITLAB_CONFIG.PROJECT_ID || !GITLAB_CONFIG.ACCESS_TOKEN) {
+    if (!GITLAB_CONFIG.BASE_URL || !GITLAB_CONFIG.PROJECT_ID || !GITLAB_CONFIG.ACCESS_TOKEN) {
         throw new Error('GitLab configuration is incomplete');
     }
 
-    const url = `${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}${endpoint}`;
+    const url = `${GITLAB_CONFIG.BASE_URL}/api/v4/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}${endpoint}`;
     const headers = {
         'Content-Type': 'application/json',
         'PRIVATE-TOKEN': GITLAB_CONFIG.ACCESS_TOKEN
@@ -409,6 +408,9 @@ app.post('/api/generate-pipeline', (req, res) => {
     try {
         const pipelineYml = generatePipelineYml(selectedGames, environment);
         latestGeneratedPipelineYml = pipelineYml;
+        const match = pipelineYml.match(/SELECTED_GAMES:\s*"([^"]+)"/);
+        global.lastSelectedGames = match ? match[1] : '';
+
         res.json({ pipelineYml });
     } catch (error) {
         console.error('Pipeline generation error:', error);
@@ -424,7 +426,15 @@ app.get('/generated-ci/:token.yml', (req, res) => {
         return res.status(403).send('Forbidden: Invalid token');
     }
 
-    const yamlContent = latestGeneratedPipelineYml.trim() || '# No pipeline available\n';
+    const emptyYaml = 
+`stages:
+  - message
+    
+print-message:
+  stage: message
+  script:
+    - echo "This pipeline has not been configured to run any game, please use the Gitlab Pipeline Generator"`;
+    const yamlContent = latestGeneratedPipelineYml.trim() || emptyYaml;
 
     // Optionally make it look like a file for GitLab or browsers
     res.setHeader('Content-Disposition', `inline; filename="${token}.yml"`);
@@ -442,15 +452,9 @@ app.post('/api/trigger-pipeline', async (req, res) => {
         if (!branch) {
             return res.status(400).json({ error: 'Branch name is required' });
         }
-
-        // console.log('Triggering pipeline with:', {
-        //     ref: branch || 'main',
-        //     token: GITLAB_CONFIG.TRIGGER_TOKEN,
-        //     // variables: Object.entries(variables || {}).map(([key, value]) => ({ key, value }))
-        // });
         
         const response = await fetch(
-            `${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/trigger/pipeline`,
+            `${GITLAB_CONFIG.BASE_URL}/api/v4/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/trigger/pipeline`,
             {
                 method: 'POST',
                 headers: {
@@ -490,6 +494,9 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
         const { pipelineId } = req.params;
         const pipeline = await gitlabApiRequest(`/pipelines/${pipelineId}`);
         const jobs = await gitlabApiRequest(`/pipelines/${pipelineId}/jobs`);
+        let selectedGamesVar = global.lastSelectedGames || '';
+
+        const selectedGameSuites = parseSelectedGames(selectedGamesVar);
 
         const totalJobs = jobs.length;
         const completedJobs = jobs.filter(j => ['success', 'failed'].includes(j.status)).length;
@@ -504,11 +511,13 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
         for (const job of jobs) {
             if (!job.name.startsWith('test_')) continue;
 
+            const suites = selectedGameSuites[job.name] || [];
+
             await db.query(`
-                INSERT INTO jobs (id, pipeline_id, name, status, stage, started_at, finished_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, finished_at = EXCLUDED.finished_at
-            `, [job.id, pipeline.id, job.name, job.status, job.stage, job.started_at, job.finished_at]);
+                INSERT INTO jobs (id, pipeline_id, name, status, stage, started_at, finished_at, suites)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, finished_at = EXCLUDED.finished_at, suites = EXCLUDED.suites
+            `, [job.id, pipeline.id, job.name, job.status, job.stage, job.started_at, job.finished_at, suites.join(',')]);
         }
 
         res.json({ ...pipeline, progress, jobs });
@@ -524,7 +533,7 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
     const parser = new XMLParser();
 
     try {
-        const response = await fetch(`${GITLAB_CONFIG.API_BASE_URL}/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/jobs/${jobId}/artifacts`, {
+        const response = await fetch(`${GITLAB_CONFIG.BASE_URL}/api/v4/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/jobs/${jobId}/artifacts`, {
             headers: { 'PRIVATE-TOKEN': GITLAB_CONFIG.ACCESS_TOKEN }
         });
 
@@ -561,12 +570,20 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
 
                 for (const tc of testcases) {
                     const status = tc.failure ? 'failed' : tc.skipped ? 'skipped' : 'passed';
+                    const failure = tc.failure;
+                    let message = null;
+                    if (typeof failure === 'object') {
+                        message = failure['#text'] || failure.message || JSON.stringify(failure);
+                    } else if (typeof failure === 'string') {
+                        message = failure;
+                    }
+                    
                     const record = {
                         name: tc['@_name'],
                         classname: tc['@_classname'],
                         status,
                         time: parseFloat(tc['@_time']),
-                        message: tc.failure?.['#text'] || null
+                        message
                     };
                     targetArray.push(record);
 
@@ -660,6 +677,17 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
         res.status(500).json({ error: 'Internal error' });
     }
 });
+
+function parseSelectedGames(value) {
+    const map = {};
+    value.split(',').forEach(entry => {
+        const [game, ...suites] = entry.split(':');
+        if (game) {
+            map[`test_${game}`] = suites.map(s => s.trim());
+        }
+    });
+    return map;
+}
 
 function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
   const maxConcurrentGroups = 5; // You can make this configurable
@@ -769,43 +797,48 @@ test_${internalName}:
   const notifyPipelineStart = `
 notify_pipeline_start:
   stage: notify_pipeline_start
-  image: alpine/curl:8.7.1
+  image: alpine/curl:latest
   script:
+    - echo $(date +%s) > start_time.txt
     - |
       curl -X POST -H 'Content-type: application/json' --data '{
-        "text": "Pipeline for project *'$CI_PROJECT_NAME'* has started :rocket:.\\nBranch: *'$CI_COMMIT_REF_NAME'*",
+        "text": "*🚀 Pipeline Started 🚀*\\n*Project:* '$CI_PROJECT_NAME'\\n*Branch:* '$CI_COMMIT_REF_NAME'\\n*Commit:* <'$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA'|'$CI_COMMIT_SHORT_SHA'>\\n*Pipeline ID:* '$CI_PIPELINE_ID'\\n*Pipeline URL:* <'$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID'|View Pipeline>",
         "channel": "'$SLACK_CHANNEL'",
         "username": "gitlab-ci",
-        "icon_emoji": ":gitlab:"
+        "icon_emoji": ":rocket:"
       }' $SLACK_WEBHOOK_URL
+  artifacts:
+    paths:
+      - start_time.txt
+    expire_in: 6 hours
   rules:
     - if: $CI_PIPELINE_SOURCE == "trigger"
+  allow_failure: true
 `;
 
   const notifyPipelineEnd = `
 notify_pipeline_end:
   stage: notify_pipeline_end
-  image: alpine/curl:8.7.1
+  image: alpine/curl:latest
   script:
+    - START_TIME=$(cat start_time.txt 2>/dev/null || echo 0)
+    - END_TIME=$(date +%s)
+    - DURATION_SEC=$((END_TIME - START_TIME))
+    - DURATION_FMT=$(printf '%02dh:%02dm:%02ds' $((DURATION_SEC/3600)) $(((DURATION_SEC%3600)/60)) $((DURATION_SEC%60)))
     - |
-      if [ "$CI_PIPELINE_STATUS" == "success" ]; then
-        curl -X POST -H 'Content-type: application/json' --data '{
-          "text": "Pipeline for project *'$CI_PROJECT_NAME'* finished successfully :white_check_mark:.\\nBranch: *'$CI_COMMIT_REF_NAME'*",
-          "channel": "'$SLACK_CHANNEL'",
-          "username": "gitlab-ci",
-          "icon_emoji": ":gitlab:"
-        }' $SLACK_WEBHOOK_URL
+      if [ "$CI_PIPELINE_STATUS" = "success" ]; then
+        STATUS_TEXT="✅ *Pipeline Passed* ✅"
       else
-        curl -X POST -H 'Content-type: application/json' --data '{
-          "text": "Pipeline for project *'$CI_PROJECT_NAME'* failed :x:.\\nBranch: *'$CI_COMMIT_REF_NAME'*",
-          "channel": "'$SLACK_CHANNEL'",
-          "username": "gitlab-ci",
-          "icon_emoji": ":gitlab:"
-        }' $SLACK_WEBHOOK_URL
+        STATUS_TEXT="❌ *Pipeline Failed* ❌"
       fi
-  allow_failure: true
+    - |
+      MESSAGE="*🏁 Pipeline Finished 🏁*\\n$STATUS_TEXT\\n*Project:* $CI_PROJECT_NAME\\n*Branch:* $CI_COMMIT_REF_NAME\\n*Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>\\n*Pipeline ID:* $CI_PIPELINE_ID\\n*Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|View Pipeline>\\n*Duration:* $DURATION_FMT"
+    - |
+      PAYLOAD=$(printf '{"text":"%s","channel":"%s","username":"gitlab-ci","icon_emoji":":gitlab:"}' "$MESSAGE" "$SLACK_CHANNEL")
+      curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
   rules:
     - if: $CI_PIPELINE_SOURCE == "trigger"
+  allow_failure: true
 `;
 
   return `

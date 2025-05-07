@@ -141,7 +141,7 @@ textarea {
     border: none;
     cursor: pointer;
     border-radius: 8px;
-    width: 80px;
+    width: 200px;
     height: 60px;
     flex-shrink: 0;
 }
@@ -741,5 +741,8 @@ body.light-mode pre.pipeline-yml-block {
 #search-results .job-summary {
     margin-bottom: 20px;
     padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+#pipeline-summary {
     border-bottom: 1px solid #ddd;
 }

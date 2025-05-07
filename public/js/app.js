@@ -631,8 +631,6 @@ function renderTestSummaryChart(containerId, summary, jobName) {
 
     const canvas = document.createElement('canvas');
     canvas.id = `${containerId}-chart`;
-    // canvas.style.maxWidth = '500px';
-    // canvas.style.height = '120px';
     canvas.style.marginTop = '15px';
 
     wrapper.appendChild(canvas);
@@ -908,6 +906,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }    
 
     await loadGames();
+
+    showPipelineStatus('No pipeline generated or triggered yet', 'info', '', 'default-message');
 
     // Hook elements
     const adminSection = document.getElementById('admin-section');
@@ -1286,6 +1286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     
         try {
+            document.getElementById('no-pipeline-msg')?.remove();
             showPipelineStatus('Generating pipeline...', 'info');
             
             const response = await fetch('/api/generate-pipeline', {
@@ -1338,12 +1339,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     
         try {
-            showPipelineStatus(`Triggering pipeline on branch: ${selectedBranch}`);
+            document.getElementById('generated-pipeline-msg')?.remove();
+            showPipelineStatus('Triggering pipeline...', 'info', '', 'triggering-message');
 
-            // const pipelineData = await triggerPipeline(selectedBranch, selectedGames);
             const pipelineData = await triggerPipeline(selectedBranch);
     
-            showPipelineStatus(`Pipeline triggered successfully! ID: ${pipelineData.id}`);
+            showPipelineStatus(`Pipeline triggered successfully! Pipeline ID is: ${pipelineData.id}`, 'success', '', 'triggered-message');
     
             // Start polling
             pollPipelineStatus(pipelineData.id);
@@ -1352,28 +1353,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    function showPipelineStatus(message, type = 'info', details = '') {
+    function showPipelineStatus(message, type = 'info', details = '', id = 'main-status') {
         const pipelineStatus = document.getElementById('pipeline-status');
         if (!pipelineStatus) return;
     
-        // Clear previous messages
-        pipelineStatus.innerHTML = '';
+        let existing = document.getElementById(id);
+        if (existing) existing.remove();
     
-        // Create message container
         const messageDiv = document.createElement('div');
         messageDiv.className = `status-message ${type}`;
+        messageDiv.id = id;
     
-        // Main message
         const messageElement = document.createElement('div');
         messageElement.textContent = message;
         messageDiv.appendChild(messageElement);
     
-        // If details are provided, create toggle button and hidden pre block
         if (details) {
             const toggleButton = document.createElement('button');
             toggleButton.textContent = 'Show Full YAML';
+            toggleButton.className = 'copy-button';
             toggleButton.style.marginTop = '10px';
-            toggleButton.className = 'copy-button'; // reuse your green button style
     
             const preBlock = document.createElement('pre');
             preBlock.className = 'pipeline-yml-block';
@@ -1387,22 +1386,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             preBlock.style.border = '1px solid #444';
             preBlock.style.marginTop = '10px';
     
-            toggleButton.addEventListener('click', () => {
-                if (preBlock.style.display === 'none') {
-                    preBlock.style.display = 'block';
-                    toggleButton.textContent = 'Hide Full YAML';
-                } else {
-                    preBlock.style.display = 'none';
-                    toggleButton.textContent = 'Show Full YAML';
-                }
-            });
+            toggleButton.onclick = () => {
+                const isVisible = preBlock.style.display === 'block';
+                preBlock.style.display = isVisible ? 'none' : 'block';
+                toggleButton.textContent = isVisible ? 'Show Full YAML' : 'Hide Full YAML';
+            };
     
             messageDiv.appendChild(toggleButton);
             messageDiv.appendChild(preBlock);
         }
     
         pipelineStatus.appendChild(messageDiv);
-    }    
+    }     
     
     function updatePipelineStatusDisplay(status) {
         const pipelineStatus = document.getElementById('pipeline-status');
@@ -1445,52 +1440,81 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch(`/api/pipeline-status/${pipelineId}`);
                 if (!response.ok) throw new Error('Failed to fetch status');
-                
                 const status = await response.json();
+    
                 updatePipelineStatusDisplay(status);
-                
+    
                 if (['success', 'failed', 'canceled'].includes(status.status)) {
                     clearInterval(interval);
-
-                    // ✅ Process artifacts for each job
+    
                     for (const job of status.jobs) {
-                        if (!job.name.startsWith('test_')) continue;
-                        await fetch(`/api/pipeline-artifacts/${job.id}`);  // trigger backend parser
+                        if (job.name?.startsWith('test_')) {
+                            await fetch(`/api/pipeline-artifacts/${job.id}`);
+                        }
                     }
     
-                    // ✅ Wait 2-3 seconds to let backend finish inserts
-                    setTimeout(async () => {
-                        try {
-                            const summaryRes = await fetch(`/api/pipeline-summary/${pipelineId}`);
-                            if (!summaryRes.ok) throw new Error('Failed to fetch summary');
-                            const { jobs } = await summaryRes.json();
+                    setTimeout(() => {
+                        showPipelineStatus('✅ Pipeline completed. Click below to load test results.', 'info', '', 'results-message');
     
-                            loadAndDisplayArtifacts(jobs);
-                        } catch (error) {
-                            console.error('Summary fetch error:', error);
-                            showPipelineStatus('Failed to load test summary', 'error');
+                        const pipelineStatusDiv = document.getElementById('pipeline-status');
+    
+                        // Create or reuse buttons
+                        let loadBtn = document.getElementById('load-results-btn');
+                        let retryBtn = document.getElementById('retry-results-btn');
+    
+                        if (!loadBtn) {
+                            loadBtn = document.createElement('button');
+                            loadBtn.id = 'load-results-btn';
+                            loadBtn.className = 'copy-button';
+                            loadBtn.textContent = 'Load Test Results';
+                            pipelineStatusDiv.appendChild(loadBtn);
                         }
-                    }, 5000); // wait 5 sec before summary fetch
+    
+                        if (!retryBtn) {
+                            retryBtn = document.createElement('button');
+                            retryBtn.id = 'retry-results-btn';
+                            retryBtn.className = 'copy-button';
+                            retryBtn.textContent = 'Retry Loading Results';
+                            retryBtn.style.marginLeft = '10px';
+                            pipelineStatusDiv.appendChild(retryBtn);
+                        }
+    
+                        const loadResults = async () => {
+                            loadBtn.disabled = true;
+                            retryBtn.disabled = true;
+                            loadBtn.textContent = 'Loading...';
+    
+                            try {
+                                const summaryRes = await fetch(`/api/pipeline-summary/${pipelineId}`);
+                                if (!summaryRes.ok) throw new Error('Failed to fetch summary');
+                                const { jobs } = await summaryRes.json();
+    
+                                await loadAndDisplayArtifacts(jobs);
+    
+                                showPipelineStatus('✅ Results loaded successfully.', 'success', '', 'results-message');
+                                loadBtn.textContent = 'Reload Test Results';
+                            } catch (err) {
+                                console.error('❌ Error loading results:', err);
+                                showPipelineStatus('❌ Failed to load test results.', 'error', '', 'results-message');
+                                loadBtn.textContent = 'Retry Loading';
+                            } finally {
+                                loadBtn.disabled = false;
+                                retryBtn.disabled = false;
+                            }
+                        };
+    
+                        loadBtn.onclick = loadResults;
+                        retryBtn.onclick = loadResults;
+                    }, 3000);
                 }
             } catch (error) {
                 clearInterval(interval);
                 console.error('Polling error:', error);
-                showPipelineStatus('Pipeline updates stopped', 'error');
+                showPipelineStatus('❌ Pipeline updates stopped due to error.', 'error');
             }
-        }, 10000); // Poll every 10 sec
-    }    
-    
-    async function fetchAndProcessArtifacts(jobs) {
-        for (const job of jobs) {
-            if (!job.name.startsWith('test_')) continue;
-            try {
-                await fetch(`/api/pipeline-artifacts/${job.id}`);
-            } catch (err) {
-                console.warn(`Artifact process failed for ${job.id}: ${err.message}`);
-            }
-        }
-    }
-    
+        }, 10000);
+    }            
+                
     async function loadAndDisplayArtifacts(jobs) {
         const infoContainer = document.getElementById('pipeline-info');
         document.getElementById('test-artifacts')?.remove();
@@ -1505,8 +1529,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             box.classList.add('job-artifacts');
     
             const title = document.createElement('h4');
-            title.textContent = `Job: ${job.name}`;
-            box.appendChild(title);
+
+            // Extract game name
+            const baseName = job.name.replace(/^test_/, '');
+            const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
+            
+            // Parse suites into title case (if available)
+            let formattedSuites = '';
+            if (job.suites) {
+                const suiteList = job.suites.split(',').map(s => {
+                    return s
+                        .replace(/_/g, ' ')
+                        .split(' ')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
+                });
+                formattedSuites = ` (${suiteList.join(', ')})`;
+            }
+            
+            title.textContent = `Job: ${displayGame}${formattedSuites}`;
+            box.appendChild(title);            
     
             const response = await fetch(`/api/pipeline-artifacts/${job.id}`);
             if (!response.ok) {
@@ -1517,47 +1559,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     
             const { artifacts } = await response.json();
     
-            if (artifacts.initial_results && artifacts.initial_results.length > 0) {
+            // Always add the box first
+            wrapper.appendChild(box);
+    
+            // Initial results
+            if (artifacts.initial_results?.length) {
                 const summary = summarizeResults(artifacts.initial_results);
+    
                 const summaryBox = document.createElement('div');
                 summaryBox.className = 'artifact-summary';
                 summaryBox.innerHTML = `
                     <h5>Initial Run</h5>
                     <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
                 `;
+    
                 const chartContainer = document.createElement('div');
                 chartContainer.id = `chart-initial-${job.id}`;
                 chartContainer.style.maxWidth = '500px';
+    
                 box.appendChild(summaryBox);
                 box.appendChild(chartContainer);
+    
                 setTimeout(() => {
                     renderTestSummaryChart(`chart-initial-${job.id}`, summary, `${job.name} Initial`);
                 }, 0);
+                renderFailures(box, artifacts.initial_results);
             }
     
-            if (artifacts.rerun_results && artifacts.rerun_results.length > 0) {
+            // Rerun results
+            if (artifacts.rerun_results?.length) {
                 const summary = summarizeResults(artifacts.rerun_results);
+    
                 const summaryBox = document.createElement('div');
                 summaryBox.className = 'artifact-summary';
                 summaryBox.innerHTML = `
                     <h5>Re-run</h5>
                     <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
                 `;
+    
                 const chartContainer = document.createElement('div');
                 chartContainer.id = `chart-rerun-${job.id}`;
                 chartContainer.style.maxWidth = '500px';
+    
                 box.appendChild(summaryBox);
                 box.appendChild(chartContainer);
+    
                 setTimeout(() => {
                     renderTestSummaryChart(`chart-rerun-${job.id}`, summary, `${job.name} Re-run`);
                 }, 0);
+                renderFailures(box, artifacts.rerun_results);
             }
-    
-            wrapper.appendChild(box);
         }
     
         infoContainer.appendChild(wrapper);
-    }
+    }    
     
     function summarizeResults(results) {
         const summary = { total: 0, passed: 0, failed: 0, skipped: 0 };
@@ -1566,6 +1621,65 @@ document.addEventListener('DOMContentLoaded', async () => {
             summary[r.status]++;
         });
         return summary;
+    }    
+
+    function renderFailures(container, results) {
+        const failedTests = results.filter(t => t.status === 'failed' && t.message);
+        if (!failedTests.length) return;
+    
+        const failedSection = document.createElement('div');
+        failedSection.className = 'failed-tests-section';
+        failedSection.style.marginTop = '10px';
+    
+        const header = document.createElement('strong');
+        header.textContent = 'Failed tests:';
+        header.style.display = 'block';
+        header.style.marginBottom = '6px';
+        failedSection.appendChild(header);
+    
+        failedTests.forEach((test, idx) => {
+            const testName = (test.name || test.classname || 'Unnamed Test').slice(0, 80);
+    
+            // Container for test name + button in a single row
+            const testRow = document.createElement('div');
+            testRow.style.display = 'flex';
+            testRow.style.alignItems = 'center';
+            testRow.style.gap = '10px';
+            testRow.style.marginTop = '5px';
+    
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `- ${testName}`;
+            nameSpan.style.flex = '1';
+    
+            const button = document.createElement('button');
+            button.textContent = `Show logs`;
+            button.className = 'copy-button';
+    
+            const pre = document.createElement('pre');
+            pre.className = 'log-output';
+            pre.textContent = test.message.trim();
+            pre.style.display = 'none';
+            pre.style.maxHeight = '200px';
+            pre.style.overflowY = 'auto';
+            pre.style.background = '#1e1e1e';
+            pre.style.color = '#ccc';
+            pre.style.padding = '10px';
+            pre.style.border = '1px solid #444';
+            pre.style.marginTop = '5px';
+    
+            button.addEventListener('click', () => {
+                const isVisible = pre.style.display === 'block';
+                pre.style.display = isVisible ? 'none' : 'block';
+                button.textContent = `${isVisible ? 'Show' : 'Hide'} logs`;
+            });
+    
+            testRow.appendChild(nameSpan);
+            testRow.appendChild(button);
+            failedSection.appendChild(testRow);
+            failedSection.appendChild(pre);
+        });
+    
+        container.appendChild(failedSection);
     }    
     
     document.getElementById('search-btn').addEventListener('click', async () => {
@@ -1585,10 +1699,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { pipeline, jobs, summary } = await response.json();
     
             let summaryHtml = `
+                <div id="pipeline-summary">
                 <h4>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h4>
                 <p>Ref: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
                 <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
-                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div>
+                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div></div><br>
+                <h4>Pipeline Test Jobs</h4>
             `;
     
             resultsDiv.innerHTML = summaryHtml;
@@ -1602,10 +1718,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     
                 const jobBox = document.createElement('div');
                 jobBox.classList.add('job-summary');
+                // Format display name from job name and suites
+                const baseName = job.name.replace(/^test_/, '');
+                const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
+
+                // Format suites nicely if available
+                let suiteDisplay = '';
+                if (job.suites) {
+                    const suiteList = job.suites.split(',').map(s =>
+                        s.replace(/_/g, ' ')
+                        .split(' ')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')
+                    );
+                    suiteDisplay = ` (${suiteList.join(', ')})`;
+                }
+
                 jobBox.innerHTML = `
-                    <strong>${job.name}</strong>: ${job.status}
-                    (${job.total_tests} tests, ${job.failed_tests} failed)
-                    <div id="chart-search-${job.id}" style="max-width: 500px; height: 120px; margin-top: 10px;"></div>
+                    <strong>${displayGame}${suiteDisplay}</strong>: ${job.status}
+                    (${job.total_tests} tests, ${job.failed_tests} failed)<br>
+                    <div style="font-weight: bold; margin-top: 5px;">Initial run</div>
+                    <div id="chart-search-${job.id}" style="max-width: 500px; margin-top: 10px;"></div>
                 `;
     
                 resultsDiv.appendChild(jobBox);
@@ -1620,6 +1753,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(() => {
                         renderTestSummaryChart(`chart-search-${job.id}`, initialSummary, `${job.name} Initial`);
                     }, 0);
+                    renderFailures(jobBox, artifacts.initial_results);
                 }
     
                 if (artifacts.rerun_results && artifacts.rerun_results.length > 0) {
@@ -1643,6 +1777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(() => {
                         renderTestSummaryChart(rerunContainerId, rerunSummary, `${job.name} Re-run`);
                     }, 0);
+                    renderFailures(jobBox, artifacts.rerun_results);
                 }
             }
         } catch (err) {
