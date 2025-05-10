@@ -22,7 +22,13 @@ function toggleButton(button) {
     const analyticsButton = document.querySelector('.buttons-container button:nth-child(6)');
     const smappButton = document.querySelector('.buttons-container button:nth-child(7)');
     const desktopButton = document.querySelector('.buttons-container button:nth-child(8)');
-    const mobileButton = document.querySelector('.buttons-container button:nth-child(9)');
+    const desktopPayoutsButton = document.querySelector('.buttons-container button:nth-child(9)');
+    const desktopUIButton = document.querySelector('.buttons-container button:nth-child(10)');
+    const desktopAnalyticsButton = document.querySelector('.buttons-container button:nth-child(11)');
+    const mobileButton = document.querySelector('.buttons-container button:nth-child(12)');
+    const mobilePayoutsButton = document.querySelector('.buttons-container button:nth-child(13)');
+    const mobileUIButton = document.querySelector('.buttons-container button:nth-child(14)');
+    const mobileAnalyticsButton = document.querySelector('.buttons-container button:nth-child(15)');
 
     button.classList.toggle('active');
 
@@ -59,17 +65,10 @@ function toggleButton(button) {
         }
     }
 
-    // Desktop ↔ smapp binding
-    if (button === desktopButton) {
-        if (desktopButton.classList.contains('active')) {
-            smappButton.classList.add('active');
-        } else {
-            smappButton.classList.remove('active');
-        }
-    }
-
-    if (button === smappButton && desktopButton.classList.contains('active')) {
-        smappButton.classList.add('active');
+    if (button === smappButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
     }
 
     // Selecting payouts, ui, analytics clears desktop & mobile
@@ -77,8 +76,23 @@ function toggleButton(button) {
         regressionButton.classList.remove('active');
         sanityButton.classList.remove('active');
         smokeButton.classList.remove('active');
-        desktopButton.classList.remove('active');
+        if (desktopButton.classList.contains('active')) {
+            desktopButton.classList.remove('active');
+            smappButton.classList.remove('active');
+        }
         mobileButton.classList.remove('active');
+        if (button === payoutsButton) {
+            desktopPayoutsButton.classList.remove('active');
+            mobilePayoutsButton.classList.remove('active');
+        }
+        if (button === uiButton) {
+            desktopUIButton.classList.remove('active');
+            mobileUIButton.classList.remove('active');
+        }
+        if (button === analyticsButton) {
+            desktopAnalyticsButton.classList.remove('active');
+            mobileAnalyticsButton.classList.remove('active');
+        }
     }
 
     // Selecting desktop or mobile clears payouts, ui, analytics
@@ -89,6 +103,80 @@ function toggleButton(button) {
         payoutsButton.classList.remove('active');
         uiButton.classList.remove('active');
         analyticsButton.classList.remove('active');
+    }
+
+    if (button === desktopPayoutsButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+        payoutsButton.classList.remove('active');
+        if (desktopButton.classList.contains('active')) {
+            desktopButton.classList.remove('active');
+            smappButton.classList.remove('active');
+        }
+    }
+
+    if (button === desktopUIButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+        uiButton.classList.remove('active');
+        if (desktopButton.classList.contains('active')) {
+            desktopButton.classList.remove('active');
+            smappButton.classList.remove('active');
+        }
+    }
+
+    if (button === desktopAnalyticsButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+        analyticsButton.classList.remove('active');
+        if (desktopButton.classList.contains('active')) {
+            desktopButton.classList.remove('active');
+            smappButton.classList.remove('active');
+        }
+    }
+
+    if (button === mobilePayoutsButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+        payoutsButton.classList.remove('active');
+        mobileButton.classList.remove('active');
+    }
+
+    if (button === mobileUIButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+        uiButton.classList.remove('active');
+        mobileButton.classList.remove('active');
+    }
+
+    if (button === mobileAnalyticsButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+        analyticsButton.classList.remove('active');
+        mobileButton.classList.remove('active');
+    }
+
+    if (button === desktopButton) {
+        if (desktopButton.classList.contains('active')) {
+            smappButton.classList.add('active');
+        } else {
+            smappButton.classList.remove('active');
+        }
+        desktopPayoutsButton.classList.remove('active');
+        desktopUIButton.classList.remove('active');
+        desktopAnalyticsButton.classList.remove('active');
+    }
+
+    if (button === mobileButton) {
+        mobilePayoutsButton.classList.remove('active');
+        mobileUIButton.classList.remove('active');
+        mobileAnalyticsButton.classList.remove('active');
     }
 
     // Clear button
@@ -107,9 +195,309 @@ function clearButtons() {
     updateOutput();
 }
 
+function toggleSelectedButton(button) {
+    const buttons = document.querySelectorAll('.selected-buttons-container button');
+    const allButtons = {
+        regression: buttons[0],
+        sanity: buttons[1],
+        smoke: buttons[2],
+        payouts: buttons[3],
+        ui: buttons[4],
+        analytics: buttons[5],
+        smapp: buttons[6],
+        desktop: buttons[7],
+        desktop_payouts: buttons[8],
+        desktop_ui: buttons[9],
+        desktop_analytics: buttons[10],
+        mobile: buttons[11],
+        mobile_payouts: buttons[12],
+        mobile_ui: buttons[13],
+        mobile_analytics: buttons[14]
+    };
+
+    button.classList.toggle('active');
+
+    const isActive = (btn) => btn.classList.contains('active');
+
+    if (button === allButtons.regression && isActive(button)) {
+        buttons.forEach(btn => {
+            if (btn !== button && btn.textContent !== 'CLEAR') btn.classList.remove('active');
+        });
+    }
+
+    if ([allButtons.sanity, allButtons.smoke].includes(button) && isActive(button)) {
+        buttons.forEach(btn => {
+            if (btn !== button && btn.textContent !== 'CLEAR') btn.classList.remove('active');
+        });
+    }
+
+    if (button === allButtons.smapp) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+    }
+
+    if ([allButtons.payouts, allButtons.ui, allButtons.analytics].includes(button)) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        if (allButtons.desktop.classList.contains('active')) {
+            allButtons.desktop.classList.remove('active');
+            allButtons.smapp.classList.remove('active');
+        }
+        allButtons.mobile.classList.remove('active');
+        if (button === allButtons.payouts) {
+            allButtons.desktop_payouts.classList.remove('active');
+            allButtons.mobile_payouts.classList.remove('active');
+        }
+        if (button === allButtons.ui) {
+            allButtons.desktop_ui.classList.remove('active');
+            allButtons.mobile_ui.classList.remove('active');
+        }
+        if (button === allButtons.analytics) {
+            allButtons.desktop_analytics.classList.remove('active');
+            allButtons.mobile_analytics.classList.remove('active');
+        }
+    }
+
+    if ([allButtons.desktop, allButtons.mobile].includes(button)) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.payouts.classList.remove('active');
+        allButtons.ui.classList.remove('active');
+        allButtons.analytics.classList.remove('active');
+    }
+
+    if (button === allButtons.desktop) {
+        if (isActive(button)) {
+            allButtons.smapp.classList.add('active');
+        } else {
+            allButtons.smapp.classList.remove('active');
+        }
+        allButtons.smapp.classList.add('active');
+        allButtons.desktop_payouts.classList.remove('active');
+        allButtons.desktop_ui.classList.remove('active');
+        allButtons.desktop_analytics.classList.remove('active');
+    }
+
+    if (button === allButtons.desktop_payouts) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.payouts.classList.remove('active');
+        if (allButtons.desktop.classList.contains('active')) {
+            allButtons.desktop.classList.remove('active');
+            allButtons.smapp.classList.remove('active');
+        }
+    }
+
+    if (button === allButtons.desktop_ui) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.ui.classList.remove('active');
+        if (allButtons.desktop.classList.contains('active')) {
+            allButtons.desktop.classList.remove('active');
+            allButtons.smapp.classList.remove('active');
+        }
+    }
+
+    if (button === allButtons.desktop_analytics) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.analytics.classList.remove('active');
+        if (allButtons.desktop.classList.contains('active')) {
+            allButtons.desktop.classList.remove('active');
+            allButtons.smapp.classList.remove('active');
+        }
+    }
+
+    if (button === allButtons.mobile) {
+        allButtons.mobile_payouts.classList.remove('active');
+        allButtons.mobile_ui.classList.remove('active');
+        allButtons.mobile_analytics.classList.remove('active');
+    }
+
+    if (button == allButtons.mobile_payouts) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.payouts.classList.remove('active');
+        allButtons.mobile.classList.remove('active');
+    }
+
+    if (button == allButtons.mobile_ui) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.ui.classList.remove('active');
+        allButtons.mobile.classList.remove('active');
+    }
+
+    if (button == allButtons.mobile_analytics) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+        allButtons.analytics.classList.remove('active');
+        allButtons.mobile.classList.remove('active');
+    }
+
+    if (button.textContent === 'CLEAR') {
+        buttons.forEach(btn => btn.classList.remove('active'));
+    }
+
+    updateSelectedTableRows(buttons);
+    updateOutput();
+}
+
+function updateSelectedTableRows(buttons) {
+    const rows = document.querySelectorAll('#table-body tr');
+
+    rows.forEach(row => {
+        const runSwitch = row.querySelector('input[type="checkbox"]:first-child');
+        if (!runSwitch.checked) return;
+
+        const regressionSwitch = row.querySelector('.regression-switch');
+        const sanitySwitch = row.querySelector('.sanity-switch');
+        const smokeSwitch = row.querySelector('.smoke-switch');
+        const payoutsSwitch = row.querySelector('.payouts-switch');
+        const uiSwitch = row.querySelector('.ui-switch');
+        const analyticsSwitch = row.querySelector('.analytics-switch');
+        const smappSwitch = row.querySelector('.smapp-switch');
+        const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
+        const desktopUISwitch = row.querySelector('.desktop-ui-switch');
+        const desktopAnalyticsSwitch = row.querySelector('.desktop-analytics-switch');
+        const mobilePayoutsSwitch = row.querySelector('.mobile-payouts-switch');
+        const mobileUISwitch = row.querySelector('.mobile-ui-switch');
+        const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
+
+        const activeLabels = Array.from(buttons)
+            .filter(btn => btn.classList.contains('active'))
+            .map(btn => btn.textContent.trim());
+
+        // Reset row
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
+        payoutsSwitch.checked = false;
+        uiSwitch.checked = false;
+        analyticsSwitch.checked = false;
+        smappSwitch.checked = false;
+        desktopPayoutsSwitch.checked = false;
+        desktopUISwitch.checked = false;
+        desktopAnalyticsSwitch.checked = false;
+        mobilePayoutsSwitch.checked = false;
+        mobileUISwitch.checked = false;
+        mobileAnalyticsSwitch.checked = false;
+
+        if (activeLabels.length === 0) {
+            runSwitch.checked = false;
+            toggleRowSwitches(runSwitch); // to disable children
+            return;
+        }
+
+        if (activeLabels.includes('REGRESSION')) {
+            regressionSwitch.checked = true;
+            toggleRegressionSwitch(regressionSwitch);
+        }
+        if (activeLabels.includes('SANITY')) {
+            sanitySwitch.checked = true;
+            toggleSanitySwitch(sanitySwitch);
+        }
+        if (activeLabels.includes('SMOKE')) {
+            smokeSwitch.checked = true;
+            toggleSmokeSwitch(smokeSwitch);
+        }
+        if (activeLabels.includes('PAYOUTS')) {
+            payoutsSwitch.checked = true;
+            togglePayoutsSwitch(payoutsSwitch);
+        }
+        if (activeLabels.includes('UI')) {
+            uiSwitch.checked = true;
+            toggleUISwitch(uiSwitch);
+        }
+        if (activeLabels.includes('ANALYTICS')) {
+            analyticsSwitch.checked = true;
+            toggleAnalyticsSwitch(analyticsSwitch);
+        }
+        if (activeLabels.includes('SMAPP')) {
+            smappSwitch.checked = true;
+            toggleSMAppSwitch(smappSwitch);
+        }
+        if (activeLabels.includes('DESKTOP')) {
+            desktopPayoutsSwitch.checked = true;
+            desktopUISwitch.checked = true;
+            desktopAnalyticsSwitch.checked = true;
+            smappSwitch.checked = true;
+            toggleDesktopPayoutsSwitch(desktopPayoutsSwitch);
+            toggleDesktopUISwitch(desktopUISwitch);
+            toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch);
+            toggleSMAppSwitch(smappSwitch);
+        }
+        if (activeLabels.includes('DESKTOP PAYOUTS')) {
+            desktopPayoutsSwitch.checked = true;
+            toggleDesktopPayoutsSwitch(desktopPayoutsSwitch);
+        }
+        if (activeLabels.includes('DESKTOP UI')) {
+            desktopUISwitch.checked = true;
+            toggleDesktopUISwitch(desktopUISwitch);
+        }
+        if (activeLabels.includes('DESKTOP ANALYTICS')) {
+            desktopAnalyticsSwitch.checked = true;
+            toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch);
+        }
+        if (activeLabels.includes('MOBILE')) {
+            mobilePayoutsSwitch.checked = true;
+            mobileUISwitch.checked = true;
+            mobileAnalyticsSwitch.checked = true;
+            toggleMobilePayoutsSwitch(mobilePayoutsSwitch);
+            toggleMobileUISwitch(mobileUISwitch);
+            toggleMobileAnalyticsSwitch(mobileAnalyticsSwitch);
+        }
+        if (activeLabels.includes('MOBILE PAYOUTS')) {
+            mobilePayoutsSwitch.checked = true;
+            toggleMobilePayoutsSwitch(mobilePayoutsSwitch);
+        }
+        if (activeLabels.includes('MOBILE UI')) {
+            mobileUISwitch.checked = true;
+            toggleMobileUISwitch(mobileUISwitch);
+        }
+        if (activeLabels.includes('MOBILE ANALYTICS')) {
+            mobileAnalyticsSwitch.checked = true;
+            toggleMobileAnalyticsSwitch(mobileAnalyticsSwitch);
+        }
+    });
+}
+
+function clearSelectedButtons() {
+    const buttons = document.querySelectorAll('.selected-buttons-container button');
+    buttons.forEach(button => button.classList.remove('active'));
+    // toggleSelectedButton({ textContent: 'CLEAR' });
+    updateSelectedTableRows(buttons);
+}
+
+function updateSelectedActionsState() {
+    const selectedButtons = document.querySelectorAll('.selected-action-btn');
+    const rows = document.querySelectorAll('#table-body tr');
+    const totalRows = rows.length;
+    const selectedRows = Array.from(rows).filter(row => {
+        const runSwitch = row.querySelector('input[type="checkbox"]');
+        return runSwitch && runSwitch.checked;
+    });
+
+    const shouldDisable = selectedRows.length === 0 || selectedRows.length === totalRows;
+
+    selectedButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.disabled = shouldDisable;
+        btn.classList.toggle('disabled', shouldDisable); // for CSS styling if needed
+    });
+}
+
 function updateTableBasedOnButtons() {
     const rows = document.querySelectorAll('#table-body tr');
-    // const allButton = document.querySelector('.buttons-container button:first-child');
     const regressionButton = document.querySelector('.buttons-container button:first-child');
     const sanityButton = document.querySelector('.buttons-container button:nth-child(2)');
     const smokeButton = document.querySelector('.buttons-container button:nth-child(3)');
@@ -118,11 +506,16 @@ function updateTableBasedOnButtons() {
     const analyticsButton = document.querySelector('.buttons-container button:nth-child(6)');
     const smappButton = document.querySelector('.buttons-container button:nth-child(7)');
     const desktopButton = document.querySelector('.buttons-container button:nth-child(8)');
-    const mobileButton = document.querySelector('.buttons-container button:nth-child(9)');
+    const desktopPayoutsButton = document.querySelector('.buttons-container button:nth-child(9)');
+    const desktopUIButton = document.querySelector('.buttons-container button:nth-child(10)');
+    const desktopAnalyticsButton = document.querySelector('.buttons-container button:nth-child(11)');
+    const mobileButton = document.querySelector('.buttons-container button:nth-child(12)');
+    const mobilePayoutsButton = document.querySelector('.buttons-container button:nth-child(13)');
+    const mobileUIButton = document.querySelector('.buttons-container button:nth-child(14)');
+    const mobileAnalyticsButton = document.querySelector('.buttons-container button:nth-child(15)');
 
     rows.forEach(row => {
         const runSwitch = row.querySelector('input[type="checkbox"]:first-child');
-        // const allSwitch = row.querySelector('.all-switch');
         const regressionSwitch = row.querySelector('.regression-switch');
         const sanitySwitch = row.querySelector('.sanity-switch');
         const smokeSwitch = row.querySelector('.smoke-switch');
@@ -138,7 +531,6 @@ function updateTableBasedOnButtons() {
         const mobileAnalyticsSwitch = row.querySelector('.mobile-analytics-switch');
 
         runSwitch.checked = false;
-        // allSwitch.checked = false;
         regressionSwitch.checked = false;
         sanitySwitch.checked = false;
         smokeSwitch.checked = false;
@@ -161,7 +553,13 @@ function updateTableBasedOnButtons() {
             analyticsButton.classList.contains('active') ||
             smappButton.classList.contains('active') ||
             desktopButton.classList.contains('active') ||
-            mobileButton.classList.contains('active')) {
+            desktopPayoutsButton.classList.contains('active') ||
+            desktopUIButton.classList.contains('active') ||
+            desktopAnalyticsButton.classList.contains('active') ||
+            mobileButton.classList.contains('active') ||
+            mobilePayoutsButton.classList.contains('active') ||
+            mobileUIButton.classList.contains('active') ||
+            mobileAnalyticsButton.classList.contains('active')) {
             runSwitch.checked = true;
             runSwitch.disabled = false;
             row.classList.add('selected-row');
@@ -171,11 +569,6 @@ function updateTableBasedOnButtons() {
                     switchInput.disabled = false;
                 }
             });
-
-            // if (allButton.classList.contains('active')) {
-            //     allSwitch.checked = true;
-            //     toggleAllSwitch(allSwitch);
-            // }
 
             if (regressionButton.classList.contains('active')) {
                 regressionSwitch.checked = true;
@@ -221,6 +614,19 @@ function updateTableBasedOnButtons() {
                 toggleSMAppSwitch(smappSwitch);
             }
 
+            if (desktopPayoutsButton.classList.contains('active')) {
+                desktopPayoutsSwitch.checked = true;
+                toggleDesktopPayoutsSwitch(desktopPayoutsSwitch);
+            }
+            if (desktopUIButton.classList.contains('active')) {
+                desktopUISwitch.checked = true;
+                toggleDesktopUISwitch(desktopUISwitch);
+            }
+            if (desktopAnalyticsButton.classList.contains('active')) {
+                desktopAnalyticsSwitch.checked = true;
+                toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch);
+            }
+
             if (mobileButton.classList.contains('active')) {
                 mobilePayoutsSwitch.checked = true;
                 mobileUISwitch.checked = true;
@@ -229,6 +635,20 @@ function updateTableBasedOnButtons() {
                 toggleMobileUISwitch(mobileUISwitch);
                 toggleMobileAnalyticsSwitch(mobileAnalyticsSwitch);
             }
+
+            if (mobilePayoutsButton.classList.contains('active')) {
+                mobilePayoutsSwitch.checked = true;
+                toggleMobilePayoutsSwitch(mobilePayoutsSwitch);
+            }
+            if (mobileUIButton.classList.contains('active')) {
+                mobileUISwitch.checked = true;
+                toggleMobileUISwitch(mobileUISwitch);
+            }
+            if (mobileAnalyticsButton.classList.contains('active')) {
+                mobileAnalyticsSwitch.checked = true;
+                toggleMobileAnalyticsSwitch(mobileAnalyticsSwitch);
+            }
+
         } else {
             runSwitch.checked = false;
             runSwitch.disabled = false;
@@ -242,6 +662,7 @@ function updateTableBasedOnButtons() {
             });
         }
     });
+    updateSelectedActionsState();
 }
 
 function toggleRowSwitches(runSwitch) {
@@ -266,6 +687,7 @@ function toggleRowSwitches(runSwitch) {
     } else {
         row.classList.remove('selected-row');
     }
+    updateSelectedActionsState();
     updateOutput();
 }
 
@@ -977,18 +1399,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function checkPersistentSession() {
         try {
             const response = await fetch('/api/check-session', {
-                credentials: 'include' // 👈 include session cookie
+                credentials: 'include'
             });
     
-            if (!response.ok) return false;
+            if (response.status === 401) {
+                // Not logged in → return false silently
+                return false;
+            }
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.warn('Unexpected error on session check:', errorText);
+                return false;
+            }
     
             const { valid, user } = await response.json();
             return valid ? user : false;
         } catch (error) {
-            console.error('Session check failed:', error);
+            console.warn('Session check failed:', error);
             return false;
         }
-    }
+    }    
 
     async function loadUserList() {
         try {
@@ -1165,10 +1596,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminSection.style.display = 'none';
             document.getElementById('admin-games-section').style.display = 'none';
             document.getElementById('generate-btn').disabled = false;
-            document.getElementById('pipeline-trigger-section').style.display = 'block';
             document.getElementById('app-content').style.display = 'block'; // 👈 show the main UI
-            // ✅ Only fetch branches after login/session confirmed
-            fetchBranches();
         }
         loginForm.classList.remove('centered');
         loginForm.style.display = 'none';
@@ -1182,7 +1610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loggedInUser.style.display = 'none';
         currentUserSpan.textContent = '';
         document.getElementById('generate-btn').disabled = true;
-        document.getElementById('pipeline-trigger-section').style.display = 'none';
+        document.getElementById('pipeline-trigger-controls').style.display = 'none';
         document.getElementById('app-content').style.display = 'none'; // 👈 hide the main UI
         adminSection.style.display = 'none';
         document.getElementById('admin-games-section').style.display = 'none';
@@ -1284,120 +1712,113 @@ document.addEventListener('DOMContentLoaded', async () => {
             showPipelineStatus('Please select at least one game to test', 'error');
             return;
         }
-    
+
         try {
-            document.getElementById('no-pipeline-msg')?.remove();
-            showPipelineStatus('Generating pipeline...', 'info');
-            
+            document.getElementById('default-message')?.remove();
+            showPipelineStatus('Generating pipeline...', 'info', '', 'generating-message');
+
             const response = await fetch('/api/generate-pipeline', {
                 method: 'POST',
                 credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    selectedGames: outputText.split(','), 
-                    environment: selectedEnv 
-                  })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ selectedGames: outputText.split(','), environment: selectedEnv })
             });
-    
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.error || 'Failed to generate pipeline');
-            }
-    
+
+            if (!response.ok) throw new Error('Failed to generate pipeline');
             const data = await response.json();
             generatedPipeline = data.pipelineYml;
-    
-            // Show success with full pipeline YML
-            showPipelineStatus(
-                'Pipeline generated successfully!', 
-                'success',
-                generatedPipeline
-            );
-    
-            // Show the trigger section
-            document.getElementById('pipeline-trigger-section').style.display = 'block';
+
+            showPipelineStatus('Pipeline generated successfully!', 'success', generatedPipeline, 'generated-pipeline-msg');
+            document.getElementById('generating-message')?.remove();
+
+            const triggerSection = document.getElementById('pipeline-trigger-controls');
+            if (triggerSection.style.display !== 'block') {
+                triggerSection.style.display = 'block';
+                await fetchBranches();
+            }
         } catch (error) {
             console.error('Pipeline generation error:', error);
-            showPipelineStatus(
-                `Failed to generate pipeline: ${error.message}`,
-                'error',
-                error.stack // Shows stack trace in details
-            );
+            showPipelineStatus(`Failed to generate pipeline: ${error.message}`, 'error');
         }
     }
 
     document.getElementById('trigger-btn').addEventListener('click', async () => {
-
         const selectedBranch = slimBranchSelector.getSelected()[0];
-        // const selectedGames = document.getElementById('output-text').value;
-        
+
         if (!generatedPipeline) {
             showError('No pipeline generated to trigger');
             return;
         }
-    
+
         try {
             document.getElementById('generated-pipeline-msg')?.remove();
             showPipelineStatus('Triggering pipeline...', 'info', '', 'triggering-message');
 
             const pipelineData = await triggerPipeline(selectedBranch);
-    
-            showPipelineStatus(`Pipeline triggered successfully! Pipeline ID is: ${pipelineData.id}`, 'success', '', 'triggered-message');
-    
-            // Start polling
+
+            document.getElementById('triggering-message')?.remove();
+            showPipelineStatus(
+                `Pipeline triggered successfully! Pipeline ID is: ${pipelineData.id}`,
+                'success',
+                '',
+                'triggered-message'
+            );
+
             pollPipelineStatus(pipelineData.id);
         } catch (error) {
             showError('Failed to trigger pipeline: ' + error.message);
         }
     });
 
-    function showPipelineStatus(message, type = 'info', details = '', id = 'main-status') {
+    function showPipelineStatus(message, type = 'info', details = '', id = 'main-status', replace = true) {
         const pipelineStatus = document.getElementById('pipeline-status');
         if (!pipelineStatus) return;
-    
-        let existing = document.getElementById(id);
-        if (existing) existing.remove();
-    
+
+        // Remove previous message of same id if replacing
+        if (replace) {
+            document.getElementById(id)?.remove();
+        }
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `status-message ${type}`;
         messageDiv.id = id;
-    
+
         const messageElement = document.createElement('div');
         messageElement.textContent = message;
         messageDiv.appendChild(messageElement);
-    
+
         if (details) {
             const toggleButton = document.createElement('button');
             toggleButton.textContent = 'Show Full YAML';
             toggleButton.className = 'copy-button';
             toggleButton.style.marginTop = '10px';
-    
+
             const preBlock = document.createElement('pre');
             preBlock.className = 'pipeline-yml-block';
             preBlock.textContent = details;
             preBlock.style.display = 'none';
-            preBlock.style.maxHeight = '300px';
+            preBlock.style.maxHeight = '600px';
             preBlock.style.overflowY = 'auto';
             preBlock.style.backgroundColor = '#1e1e1e';
             preBlock.style.color = '#ccc';
             preBlock.style.padding = '10px';
             preBlock.style.border = '1px solid #444';
             preBlock.style.marginTop = '10px';
-    
+
             toggleButton.onclick = () => {
                 const isVisible = preBlock.style.display === 'block';
                 preBlock.style.display = isVisible ? 'none' : 'block';
                 toggleButton.textContent = isVisible ? 'Show Full YAML' : 'Hide Full YAML';
             };
-    
+
             messageDiv.appendChild(toggleButton);
             messageDiv.appendChild(preBlock);
         }
-    
-        pipelineStatus.appendChild(messageDiv);
-    }     
+
+        // Insert before the progress/status container to keep progress visible below
+        const container = document.getElementById('pipeline-status-container');
+        pipelineStatus.insertBefore(messageDiv, container || null);
+    }    
     
     function updatePipelineStatusDisplay(status) {
         const pipelineStatus = document.getElementById('pipeline-status');
@@ -1441,27 +1862,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const response = await fetch(`/api/pipeline-status/${pipelineId}`);
                 if (!response.ok) throw new Error('Failed to fetch status');
                 const status = await response.json();
-    
+
                 updatePipelineStatusDisplay(status);
-    
+
                 if (['success', 'failed', 'canceled'].includes(status.status)) {
                     clearInterval(interval);
-    
+
                     for (const job of status.jobs) {
                         if (job.name?.startsWith('test_')) {
                             await fetch(`/api/pipeline-artifacts/${job.id}`);
                         }
                     }
-    
+
                     setTimeout(() => {
                         showPipelineStatus('✅ Pipeline completed. Click below to load test results.', 'info', '', 'results-message');
-    
+
                         const pipelineStatusDiv = document.getElementById('pipeline-status');
-    
-                        // Create or reuse buttons
                         let loadBtn = document.getElementById('load-results-btn');
                         let retryBtn = document.getElementById('retry-results-btn');
-    
+
                         if (!loadBtn) {
                             loadBtn = document.createElement('button');
                             loadBtn.id = 'load-results-btn';
@@ -1469,7 +1888,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             loadBtn.textContent = 'Load Test Results';
                             pipelineStatusDiv.appendChild(loadBtn);
                         }
-    
+
                         if (!retryBtn) {
                             retryBtn = document.createElement('button');
                             retryBtn.id = 'retry-results-btn';
@@ -1478,31 +1897,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                             retryBtn.style.marginLeft = '10px';
                             pipelineStatusDiv.appendChild(retryBtn);
                         }
-    
+
                         const loadResults = async () => {
                             loadBtn.disabled = true;
                             retryBtn.disabled = true;
                             loadBtn.textContent = 'Loading...';
-    
+
                             try {
                                 const summaryRes = await fetch(`/api/pipeline-summary/${pipelineId}`);
                                 if (!summaryRes.ok) throw new Error('Failed to fetch summary');
                                 const { jobs } = await summaryRes.json();
-    
+
                                 await loadAndDisplayArtifacts(jobs);
-    
-                                showPipelineStatus('✅ Results loaded successfully.', 'success', '', 'results-message');
+                                showPipelineStatus('✅ Results loaded successfully.', 'success', '', 'results-loaded-message', true);
                                 loadBtn.textContent = 'Reload Test Results';
                             } catch (err) {
                                 console.error('❌ Error loading results:', err);
-                                showPipelineStatus('❌ Failed to load test results.', 'error', '', 'results-message');
+                                showPipelineStatus('❌ Failed to load test results.', 'error', '', 'results-loaded-message', true);
                                 loadBtn.textContent = 'Retry Loading';
                             } finally {
                                 loadBtn.disabled = false;
                                 retryBtn.disabled = false;
                             }
                         };
-    
+
                         loadBtn.onclick = loadResults;
                         retryBtn.onclick = loadResults;
                     }, 3000);
@@ -1513,7 +1931,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPipelineStatus('❌ Pipeline updates stopped due to error.', 'error');
             }
         }, 10000);
-    }            
+    }     
                 
     async function loadAndDisplayArtifacts(jobs) {
         const infoContainer = document.getElementById('pipeline-info');
@@ -1659,7 +2077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pre.className = 'log-output';
             pre.textContent = test.message.trim();
             pre.style.display = 'none';
-            pre.style.maxHeight = '200px';
+            pre.style.maxHeight = '500px';
             pre.style.overflowY = 'auto';
             pre.style.background = '#1e1e1e';
             pre.style.color = '#ccc';
@@ -1785,6 +2203,102 @@ document.addEventListener('DOMContentLoaded', async () => {
             resultsDiv.innerHTML = `<p style="color:red;">No data found for ID: ${searchId}</p>`;
         }
     });
+
+    const pathMatch = window.location.pathname.match(/^\/results\/(\d+)/);
+        if (pathMatch) {
+            const pipelineOrJobId = pathMatch[1];
+            loadPipelineResultsById(pipelineOrJobId);
+        }
     
+    async function loadPipelineResultsById(id) {
+        const resultsDiv = document.getElementById('search-results');
+        resultsDiv.innerHTML = '';
+    
+        try {
+            const response = await fetch(`/api/pipeline-summary/${id}`);
+            if (!response.ok) throw new Error('Not found');
+    
+            const { pipeline, jobs, summary } = await response.json();
+    
+            resultsDiv.innerHTML = `
+                <div id="pipeline-summary">
+                <h4>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h4>
+                <p>Ref: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
+                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
+                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div></div><br>
+                <h4>Pipeline Test Jobs</h4>
+            `;
+    
+            renderSearchSummaryChart('search-summary-chart', summary);
+    
+            for (const job of jobs) {
+                if (!job.name || !job.name.startsWith('test_')) continue;
+    
+                const jobBox = document.createElement('div');
+                jobBox.classList.add('job-summary');
+    
+                const baseName = job.name.replace(/^test_/, '');
+                const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
+    
+                let suiteDisplay = '';
+                if (job.suites) {
+                    const suiteList = job.suites.split(',').map(s =>
+                        s.replace(/_/g, ' ')
+                        .split(' ')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')
+                    );
+                    suiteDisplay = ` (${suiteList.join(', ')})`;
+                }
+    
+                jobBox.innerHTML = `
+                    <strong>${displayGame}${suiteDisplay}</strong>: ${job.status}
+                    (${job.total_tests} tests, ${job.failed_tests} failed)<br>
+                    <div style="font-weight: bold; margin-top: 5px;">Initial run</div>
+                    <div id="chart-search-${job.id}" style="max-width: 500px; margin-top: 10px;"></div>
+                `;
+    
+                resultsDiv.appendChild(jobBox);
+    
+                const artifactsRes = await fetch(`/api/pipeline-artifacts/${job.id}`);
+                if (!artifactsRes.ok) continue;
+    
+                const { artifacts } = await artifactsRes.json();
+    
+                if (artifacts.initial_results?.length) {
+                    const summary = summarizeResults(artifacts.initial_results);
+                    renderTestSummaryChart(`chart-search-${job.id}`, summary, `${job.name} Initial`);
+                    renderFailures(jobBox, artifacts.initial_results);
+                }
+    
+                if (artifacts.rerun_results?.length) {
+                    const rerunId = `chart-search-${job.id}-rerun`;
+    
+                    const rerunLabel = document.createElement('div');
+                    rerunLabel.textContent = 'Re-run';
+                    rerunLabel.style.fontWeight = 'bold';
+                    rerunLabel.style.marginTop = '5px';
+    
+                    const rerunContainer = document.createElement('div');
+                    rerunContainer.id = rerunId;
+                    rerunContainer.style.maxWidth = '500px';
+                    rerunContainer.style.marginTop = '10px';
+    
+                    jobBox.appendChild(rerunLabel);
+                    jobBox.appendChild(rerunContainer);
+    
+                    const summary = summarizeResults(artifacts.rerun_results);
+                    renderTestSummaryChart(rerunId, summary, `${job.name} Re-run`);
+                    renderFailures(jobBox, artifacts.rerun_results);
+                }
+            }
+            setTimeout(() => {
+                document.getElementById('search-results')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        } catch (err) {
+            console.error('Failed to load results:', err);
+            resultsDiv.innerHTML = `<p style="color:red;">No data found for ID: ${id}</p>`;
+        }
+    }
     
 });

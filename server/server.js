@@ -40,9 +40,9 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // change to true in production with HTTPS
+        secure: true, // change to true in production with HTTPS
         httpOnly: true,
-        sameSite: 'none',
+        sameSite: 'none', // Can be 'lax' or 'strict' for HTTP, 'none' requires HTTPS
         maxAge: SESSION_DURATION
     }
 }));
@@ -676,6 +676,13 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
         console.error('Summary fetch error:', err);
         res.status(500).json({ error: 'Internal error' });
     }
+});
+
+app.get('/results/:id', (req, res) => {
+    if (!req.session || !req.session.userId || req.session.expires < Date.now()) {
+        return res.redirect('/'); // or res.status(401).send('Unauthorized');
+    }
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 function parseSelectedGames(value) {

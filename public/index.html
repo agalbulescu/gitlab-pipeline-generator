@@ -41,7 +41,7 @@
             <h3 style="margin-top:20px;">User List</h3>
             <ul id="user-list" style="list-style:none; padding-left:0;"></ul>
         </div>
-        <section id="admin-games-section" style="margin-top: 30px;">
+        <section id="admin-games-section" style="display:none; margin-top: 30px;">
             <h3>Manage Games (Admin Only)</h3>
             <div>
                 <input type="text" id="new-game-display" placeholder="Display Name">
@@ -81,8 +81,35 @@
                     <button onclick="toggleButton(this)">ANALYTICS</button>
                     <button onclick="toggleButton(this)">SMAPP</button>
                     <button onclick="toggleButton(this)">DESKTOP</button>
+                    <button onclick="toggleButton(this)">DESKTOP PAYOUTS</button>
+                    <button onclick="toggleButton(this)">DESKTOP UI</button>
+                    <button onclick="toggleButton(this)">DESKTOP ANALYTICS</button>
                     <button onclick="toggleButton(this)">MOBILE</button>
+                    <button onclick="toggleButton(this)">MOBILE PAYOUTS</button>
+                    <button onclick="toggleButton(this)">MOBILE UI</button>
+                    <button onclick="toggleButton(this)">MOBILE ANALYTICS</button>
                     <button onclick="clearButtons()">CLEAR</button>
+                </div>
+            </div>
+            <div class="sub-title">Actions for Selected Games</div>
+            <div class="buttons-container selected-buttons-container">
+                <div class="left-buttons">
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">REGRESSION</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">SANITY</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">SMOKE</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">PAYOUTS</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">UI</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">ANALYTICS</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">SMAPP</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">DESKTOP</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">DESKTOP PAYOUTS</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">DESKTOP UI</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">DESKTOP ANALYTICS</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">MOBILE</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">MOBILE PAYOUTS</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">MOBILE UI</button>
+                    <button class="selected-action-btn" onclick="toggleSelectedButton(this)">MOBILE ANALYTICS</button>
+                    <button class="selected-action-btn" onclick="clearSelectedButtons()">CLEAR</button>
                 </div>
             </div>
             <div class="sub-title-2">Actions per Game</div>
@@ -119,13 +146,11 @@
                 <textarea id="output-text" readonly></textarea>
                 <button id="generate-btn" disabled>Generate Pipeline</button>
             </div>
-            <div class="pipeline-controls">
+            <div id= "pipeline-trigger-controls" class="pipeline-controls" style="display: none;">
                 <div class="sub-title">Select on which branch to run</div>
                 <div id="branch-load-error" class="error-message" style="display: none;"></div>
-                <div id="pipeline-trigger-section" style="display: none;">
-                    <div class="branch-selection-container">
-                        <select id="branch-selector" class="branch-selector"></select>
-                    </div>
+                <div class="branch-selection-container">
+                    <select id="branch-selector" class="branch-selector"></select>
                 </div>
                 <button id="trigger-btn" class="trigger-button">Trigger Pipeline</button>
             </div>

@@ -3,6 +3,9 @@
     "version": "1.0.0",
     "description": "Web app to generate and trigger GitLab pipelines",
     "main": "server/server.js",
+    "engines": {
+        "node": ">=22.0.0"
+        },
     "scripts": {
         "start": "node server/server.js",
         "dev": "nodemon server/server.js"
