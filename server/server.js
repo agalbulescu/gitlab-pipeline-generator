@@ -8,7 +8,7 @@ const SALT_ROUNDS = 10;
 const path = require('path');
 require('dotenv').config();
 
-const { initDatabase } = require('./init-db'); // make sure path is correct
+const { initDatabase } = require('./init-db');
 initDatabase();
 
 const db = require('./db');
@@ -21,7 +21,6 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
 app.use((req, res, next) => {
-    // Security headers
     res.set('X-Content-Type-Options', 'nosniff');
     res.set('X-Frame-Options', 'DENY');
     next();
@@ -32,17 +31,17 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Middleware setup for session management
-const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Setup for session management
+const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000;
 
 app.use(session({
     secret: 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: true, // change to true in production with HTTPS
+        secure: false,
         httpOnly: true,
-        sameSite: 'none', // Can be 'lax' or 'strict' for HTTP, 'none' requires HTTPS
+        sameSite: 'none', // 'lax'/'strict' for HTTP, 'none' for HTTPS
         maxAge: SESSION_DURATION
     }
 }));
@@ -68,7 +67,7 @@ let latestGeneratedPipelineYml = '';
 
 // Helper function for GitLab API requests
 async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
-    // Add validation for required configuration
+
     if (!GITLAB_CONFIG.BASE_URL || !GITLAB_CONFIG.PROJECT_ID || !GITLAB_CONFIG.ACCESS_TOKEN) {
         throw new Error('GitLab configuration is incomplete');
     }
@@ -96,8 +95,7 @@ async function gitlabApiRequest(endpoint, method = 'GET', body = null) {
 }
 
 // API Endpoints
-
-// Add this endpoint for user list (protected)
+// Get all users (admin only)
 app.get('/api/users', async (req, res) => {
     if (!req.session || !req.session.isAdmin) {
         return res.status(403).json({ error: 'Forbidden' });
@@ -110,7 +108,7 @@ app.get('/api/users', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch users' });
     }
 });
-
+// Create a new user (admin only)
 app.post('/api/users', async (req, res) => {
     if (!req.session || !req.session.isAdmin) {
         return res.status(403).json({ error: 'Forbidden: admin only' });
@@ -128,6 +126,7 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
+// Delete a user (admin only)
 app.delete('/api/users/:id', async (req, res) => {
     if (!req.session || !req.session.isAdmin) {
         return res.status(403).json({ error: 'Forbidden: admin only' });
@@ -143,6 +142,7 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 });
 
+// Get all games
 app.get('/api/games', async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM games ORDER BY display_name ASC');
@@ -183,7 +183,7 @@ app.delete('/api/games/:id', async (req, res) => {
     }
 });
 
-// Add login endpoint
+// Login and session management
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
@@ -247,12 +247,14 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Logout
 app.post('/api/logout', (req, res) => {
     req.session.destroy(() => {
         res.json({ success: true });
     });
 });
 
+// Change password
 app.post('/api/change-password', async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
@@ -299,8 +301,13 @@ app.post('/api/change-password', async (req, res) => {
 
 // Session check middleware (to protect routes)
 app.use((req, res, next) => {
-    // Skip session check for the public GitLab YAML endpoint
-    if (req.path.startsWith('/generated-ci/')) {
+    // Skip session check for the public GitLab YAML endpoint and results pages
+    const exemptPaths = [
+        req.path.startsWith('/generated-ci/'),
+        req.path.match(/^\/results\/\d+$/)
+    ];
+
+    if (exemptPaths.some(Boolean)) {
         return next();
     }
 
@@ -314,6 +321,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// Check session validity
 app.get('/api/check-session', async (req, res) => {
     if (typeof req.session.userId === 'undefined' || req.session.expires < Date.now()) {
         return res.status(401).json({ valid: false });
@@ -358,11 +366,11 @@ app.get('/api/check-session', async (req, res) => {
 // Get project branches
 app.get('/api/branches', async (req, res) => {
     try {
-        // Get all branches with pagination support
+        // Get all branches with pagination
         let allBranches = [];
         let page = 1;
         let morePages = true;
-        const perPage = 100; // GitLab's max per page
+        const perPage = 100;
 
         while (morePages) {
             const branches = await gitlabApiRequest(`/repository/branches?per_page=${perPage}&page=${page}`);
@@ -374,7 +382,7 @@ app.get('/api/branches', async (req, res) => {
                 page++;
                 
                 // Safety check to prevent infinite loops
-                if (page > 50) { // Maximum 5000 branches (100 per page × 50)
+                if (page > 50) { // Maximum 5000 branches
                     morePages = false;
                     console.warn('Hit safety limit while fetching branches');
                 }
@@ -397,7 +405,7 @@ app.get('/api/branches', async (req, res) => {
     }
 });
 
-// API endpoint to generate pipeline YML
+// Generate pipeline YAML
 app.post('/api/generate-pipeline', (req, res) => {
     const { selectedGames, environment } = req.body;
     
@@ -436,17 +444,14 @@ print-message:
     - echo "This pipeline has not been configured to run any game, please use the Gitlab Pipeline Generator"`;
     const yamlContent = latestGeneratedPipelineYml.trim() || emptyYaml;
 
-    // Optionally make it look like a file for GitLab or browsers
     res.setHeader('Content-Disposition', `inline; filename="${token}.yml"`);
 
-    // Set the content type to YAML and send the content
     res.type('text/yaml').send(yamlContent);
 });
 
-// Trigger a new pipeline using trigger token and include
+// Trigger pipeline
 app.post('/api/trigger-pipeline', async (req, res) => {
     try {
-        // const { branch, variables } = req.body;
         const { branch } = req.body;
 
         if (!branch) {
@@ -475,7 +480,6 @@ app.post('/api/trigger-pipeline', async (req, res) => {
 
         const pipelineData = await response.json();
 
-        // CLEAR THE YAML AFTER TRIGGERING
         latestGeneratedPipelineYml = '';
 
         res.json(pipelineData);
@@ -488,7 +492,7 @@ app.post('/api/trigger-pipeline', async (req, res) => {
     }
 });
 
-// === 1. Save pipeline + jobs (NO ARTIFACTS) ===
+// Save pipeline info and jobs details to DB
 app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
     try {
         const { pipelineId } = req.params;
@@ -527,10 +531,13 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
     }
 });
 
-// === 2. Process artifacts and save test results ===
+// Process artifacts and save test results to DB
 app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
     const { jobId } = req.params;
-    const parser = new XMLParser();
+    const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: ''
+    });
 
     try {
         const response = await fetch(`${GITLAB_CONFIG.BASE_URL}/api/v4/projects/${encodeURIComponent(GITLAB_CONFIG.PROJECT_ID)}/jobs/${jobId}/artifacts`, {
@@ -562,6 +569,7 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
                     : [jsonObj.testsuites.testsuite];
             }
 
+            const runType = entry.entryName.includes('rerun_') ? 'rerun' : 'initial';
             const targetArray = entry.entryName.includes('rerun_') ? rerunResults : initialResults;
 
             for (const suite of testsuites) {
@@ -569,6 +577,7 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
                 const testcases = Array.isArray(suite.testcase) ? suite.testcase : [suite.testcase];
 
                 for (const tc of testcases) {
+
                     const status = tc.failure ? 'failed' : tc.skipped ? 'skipped' : 'passed';
                     const failure = tc.failure;
                     let message = null;
@@ -577,20 +586,25 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
                     } else if (typeof failure === 'string') {
                         message = failure;
                     }
+
+                    const name = tc.name || null;
+                    const classname = tc.classname || null;
+                    const time = tc.time ? parseFloat(tc.time) : 0;
                     
                     const record = {
-                        name: tc['@_name'],
-                        classname: tc['@_classname'],
+                        name,
+                        classname,
                         status,
-                        time: parseFloat(tc['@_time']),
-                        message
+                        time,
+                        message,
+                        run_type: runType
                     };
                     targetArray.push(record);
 
                     await db.query(`
-                        INSERT INTO test_results (job_id, name, classname, status, time, message)
-                        VALUES ($1, $2, $3, $4, $5, $6)
-                    `, [jobId, record.name, record.classname, record.status, record.time, record.message]);
+                        INSERT INTO test_results (job_id, name, classname, status, time, message, run_type)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    `, [jobId, record.name, record.classname, record.status, record.time, record.message, record.run_type]);
                 }
             }
         }
@@ -608,7 +622,7 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
     }
 });
 
-// === 3. Get summary ===
+// Get Pipeline summary and Jobs from DB
 app.get('/api/pipeline-summary/:id', async (req, res) => {
     const { id } = req.params;
     const jobSummaries = [];
@@ -635,7 +649,7 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
             const testResult = await db.query(
                 `SELECT status, COUNT(*) AS count
                  FROM test_results
-                 WHERE job_id = $1
+                 WHERE job_id = $1 AND run_type = 'initial'
                  GROUP BY status`,
                 [job.id]
             );
@@ -678,13 +692,50 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
     }
 });
 
+// Get job results and failure logs from DB
+app.get('/api/job-results/:jobId', async (req, res) => {
+    const { jobId } = req.params;
+
+    try {
+        const result = await db.query(
+            `SELECT name, classname, status, time, message, run_type
+             FROM test_results
+             WHERE job_id = $1`,
+            [jobId]
+        );
+
+        const initialResults = [];
+        const rerunResults = [];
+
+        for (const row of result.rows) {
+            const record = {
+                name: row.name,
+                classname: row.classname,
+                status: row.status,
+                time: row.time,
+                message: row.message,
+                run_type: row.run_type
+            };
+            if (row.run_type === 'rerun') rerunResults.push(record);
+            else initialResults.push(record);
+        }
+
+        res.json({ initial_results: initialResults, rerun_results: rerunResults });
+    } catch (err) {
+        console.error('Job result fetch error:', err);
+        res.status(500).json({ error: 'Failed to retrieve job results' });
+    }
+});
+
+// Serve the results page
 app.get('/results/:id', (req, res) => {
     if (!req.session || !req.session.userId || req.session.expires < Date.now()) {
-        return res.redirect('/'); // or res.status(401).send('Unauthorized');
+        return res.redirect('/');
     }
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Parse selected games
 function parseSelectedGames(value) {
     const map = {};
     value.split(',').forEach(entry => {
@@ -696,8 +747,9 @@ function parseSelectedGames(value) {
     return map;
 }
 
+// Generate pipeline YAML
 function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
-  const maxConcurrentGroups = 5; // You can make this configurable
+  const maxConcurrentGroups = 5; // CONFIGURABLE
 
   const suiteMap = {
       'regression': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
@@ -706,6 +758,8 @@ function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
       'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_payouts',
       'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_ui',
       'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_analytics',
+      'backoffice': 'tests/${internalName}/desktop/ -k test_backoffice',
+      'oss': 'tests/${internalName}/desktop/ -k test_oss',
       'smapp': 'tests/${internalName}/desktop/ -k test_smapp',
       'desktop': 'tests/${internalName}/desktop/',
       'mobile': 'tests/${internalName}/mobile/',
@@ -809,7 +863,7 @@ notify_pipeline_start:
     - echo $(date +%s) > start_time.txt
     - |
       curl -X POST -H 'Content-type: application/json' --data '{
-        "text": "*🚀 Pipeline Started 🚀*\\n*Project:* '$CI_PROJECT_NAME'\\n*Branch:* '$CI_COMMIT_REF_NAME'\\n*Commit:* <'$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA'|'$CI_COMMIT_SHORT_SHA'>\\n*Pipeline ID:* '$CI_PIPELINE_ID'\\n*Pipeline URL:* <'$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID'|View Pipeline>",
+        "text": "*🚀 Pipeline Started 🚀*\\n*Project:* '$CI_PROJECT_NAME'\\n*Branch:* <'$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME'|'$CI_COMMIT_REF_NAME'>\\n*Commit:* <'$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA'|'$CI_COMMIT_SHORT_SHA'>\\n*Pipeline URL:* <'$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID'|'$CI_PIPELINE_ID'>",
         "channel": "'$SLACK_CHANNEL'",
         "username": "gitlab-ci",
         "icon_emoji": ":rocket:"
@@ -839,7 +893,7 @@ notify_pipeline_end:
         STATUS_TEXT="❌ *Pipeline Failed* ❌"
       fi
     - |
-      MESSAGE="*🏁 Pipeline Finished 🏁*\\n$STATUS_TEXT\\n*Project:* $CI_PROJECT_NAME\\n*Branch:* $CI_COMMIT_REF_NAME\\n*Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>\\n*Pipeline ID:* $CI_PIPELINE_ID\\n*Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|View Pipeline>\\n*Duration:* $DURATION_FMT"
+      MESSAGE="*🏁 Pipeline Finished 🏁*\\n$STATUS_TEXT\\n*Project:* $CI_PROJECT_NAME\\n*Branch:* <$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME|$CI_COMMIT_REF_NAME>\\n*Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>\\n*Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|$CI_PIPELINE_ID>\\n*Duration:* $DURATION_FMT\\n*Results:* <https://pypipe.456842.xyz/results/$CI_PIPELINE_ID|View>"
     - |
       PAYLOAD=$(printf '{"text":"%s","channel":"%s","username":"gitlab-ci","icon_emoji":":gitlab:"}' "$MESSAGE" "$SLACK_CHANNEL")
       curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
@@ -868,6 +922,7 @@ ${notifyPipelineEnd}
 `;
 }
 
+// Start the server and handle port conflicts
 async function startServer(port) {
     return new Promise((resolve, reject) => {
         const server = app.listen(port, () => {
@@ -877,19 +932,20 @@ async function startServer(port) {
         }).on('error', (err) => {
             if (err.code === 'EADDRINUSE') {
                 console.log(`Port ${port} in use, trying port ${port + 1}...`);
-                resolve(null); // Signal that this port failed
+                resolve(null);
             } else {
-                reject(err); // Other errors should crash the app
+                reject(err);
             }
         });
     });
 }
 
+// Find an available port starting from the specified port
 async function findAvailablePort(startPort) {
     let port = startPort;
     let server = null;
     
-    while (port < startPort + 10 && !server) { // Try up to 10 ports
+    while (port < startPort + 10 && !server) {
         server = await startServer(port);
         if (!server) port++;
     }

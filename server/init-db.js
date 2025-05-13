@@ -11,7 +11,6 @@ async function initDatabase() {
                 name TEXT NOT NULL
             );
         `);
-        // console.log('✅ Users');
         // Create games table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS games (
@@ -20,7 +19,6 @@ async function initDatabase() {
                 internal_name VARCHAR(255) NOT NULL UNIQUE
             )
         `);
-        // console.log('✅ Games');
         // Create pipelines table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS pipelines (
@@ -32,7 +30,6 @@ async function initDatabase() {
                 updated_at TIMESTAMP
             );
         `);
-        // console.log('✅ Pipelines');
         // Create jobs table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS jobs (
@@ -46,7 +43,6 @@ async function initDatabase() {
                 suites TEXT
             );
         `);
-        // console.log('✅ Jobs');
         // Create test results table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS test_results (
@@ -56,10 +52,10 @@ async function initDatabase() {
                 classname TEXT,
                 status TEXT,
                 time FLOAT,
-                message TEXT
+                message TEXT,
+                run_type TEXT
             );
         `);
-        // console.log('✅ Test Results');
         console.log('✅ Database fully ensured.');
     } catch (err) {
         console.error('❌ Error initializing database:', err);

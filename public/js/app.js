@@ -1,34 +1,42 @@
+let currentTheme = '';
+const themeSelectors = '.sub-title, .job-artifacts';
+
 // Function to toggle light/dark mode
 function toggleMode() {
+    currentTheme = currentTheme === 'light-mode' ? '' : 'light-mode';
     const body = document.body;
     body.classList.toggle('light-mode');
     document.querySelector('header').classList.toggle('light-mode');
-    document.querySelector('.sub-title').classList.toggle('light-mode');
-    document.querySelector('.sub-title-2').classList.toggle('light-mode');
+    document.querySelectorAll(themeSelectors).forEach(el => {
+        el.classList.toggle('light-mode', currentTheme === 'light-mode');
+    });
     document.querySelector('.buttons-container').classList.toggle('light-mode');
-    document.querySelector('.textbox-container').classList.toggle('light-mode');
+    document.querySelector('.selected-buttons-container').classList.toggle('light-mode');
     document.querySelector('table').classList.toggle('light-mode');
-    document.querySelector('#edit-games').classList.toggle('light-mode');
     document.querySelector('#pipeline-info').classList.toggle('light-mode');
 }
 
 function toggleButton(button) {
     const buttons = document.querySelectorAll('.buttons-container button');
-    const regressionButton = document.querySelector('.buttons-container button:nth-child(1)');
-    const sanityButton = document.querySelector('.buttons-container button:nth-child(2)');
-    const smokeButton = document.querySelector('.buttons-container button:nth-child(3)');
-    const payoutsButton = document.querySelector('.buttons-container button:nth-child(4)');
-    const uiButton = document.querySelector('.buttons-container button:nth-child(5)');
-    const analyticsButton = document.querySelector('.buttons-container button:nth-child(6)');
-    const smappButton = document.querySelector('.buttons-container button:nth-child(7)');
-    const desktopButton = document.querySelector('.buttons-container button:nth-child(8)');
-    const desktopPayoutsButton = document.querySelector('.buttons-container button:nth-child(9)');
-    const desktopUIButton = document.querySelector('.buttons-container button:nth-child(10)');
-    const desktopAnalyticsButton = document.querySelector('.buttons-container button:nth-child(11)');
-    const mobileButton = document.querySelector('.buttons-container button:nth-child(12)');
-    const mobilePayoutsButton = document.querySelector('.buttons-container button:nth-child(13)');
-    const mobileUIButton = document.querySelector('.buttons-container button:nth-child(14)');
-    const mobileAnalyticsButton = document.querySelector('.buttons-container button:nth-child(15)');
+    const regressionButton = document.querySelector('.buttons-container [data-label="regression"]');
+    const sanityButton = document.querySelector('.buttons-container [data-label="sanity"]');
+    const smokeButton = document.querySelector('.buttons-container [data-label="smoke"]');
+    const payoutsButton = document.querySelector('.buttons-container [data-label="payouts"]');
+    const uiButton = document.querySelector('.buttons-container [data-label="ui"]');
+    const analyticsButton = document.querySelector('.buttons-container [data-label="analytics"]');
+
+    const backofficeButton = document.querySelector('.buttons-container [data-label="backoffice"]');
+    const ossButton = document.querySelector('.buttons-container [data-label="oss"]');
+    const smappButton = document.querySelector('.buttons-container [data-label="smapp"]');
+    const desktopButton = document.querySelector('.buttons-container [data-label="desktop"]');
+    const desktopPayoutsButton = document.querySelector('.buttons-container [data-label="desktop_payouts"]');
+    const desktopUIButton = document.querySelector('.buttons-container [data-label="desktop_ui"]');
+    const desktopAnalyticsButton = document.querySelector('.buttons-container [data-label="desktop_analytics"]');
+
+    const mobileButton = document.querySelector('.buttons-container [data-label="mobile"]');
+    const mobilePayoutsButton = document.querySelector('.buttons-container [data-label="mobile_payouts"]');
+    const mobileUIButton = document.querySelector('.buttons-container [data-label="mobile_ui"]');
+    const mobileAnalyticsButton = document.querySelector('.buttons-container [data-label="mobile_analytics"]');
 
     button.classList.toggle('active');
 
@@ -65,6 +73,18 @@ function toggleButton(button) {
         }
     }
 
+    if (button === backofficeButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+    }
+
+    if (button === ossButton) {
+        regressionButton.classList.remove('active');
+        sanityButton.classList.remove('active');
+        smokeButton.classList.remove('active');
+    }
+
     if (button === smappButton) {
         regressionButton.classList.remove('active');
         sanityButton.classList.remove('active');
@@ -78,6 +98,8 @@ function toggleButton(button) {
         smokeButton.classList.remove('active');
         if (desktopButton.classList.contains('active')) {
             desktopButton.classList.remove('active');
+            backofficeButton.classList.remove('active');
+            ossButton.classList.remove('active');
             smappButton.classList.remove('active');
         }
         mobileButton.classList.remove('active');
@@ -112,6 +134,8 @@ function toggleButton(button) {
         payoutsButton.classList.remove('active');
         if (desktopButton.classList.contains('active')) {
             desktopButton.classList.remove('active');
+            backofficeButton.classList.remove('active');
+            ossButton.classList.remove('active');
             smappButton.classList.remove('active');
         }
     }
@@ -123,6 +147,8 @@ function toggleButton(button) {
         uiButton.classList.remove('active');
         if (desktopButton.classList.contains('active')) {
             desktopButton.classList.remove('active');
+            backofficeButton.classList.remove('active');
+            ossButton.classList.remove('active');
             smappButton.classList.remove('active');
         }
     }
@@ -134,6 +160,8 @@ function toggleButton(button) {
         analyticsButton.classList.remove('active');
         if (desktopButton.classList.contains('active')) {
             desktopButton.classList.remove('active');
+            backofficeButton.classList.remove('active');
+            ossButton.classList.remove('active');
             smappButton.classList.remove('active');
         }
     }
@@ -164,8 +192,12 @@ function toggleButton(button) {
 
     if (button === desktopButton) {
         if (desktopButton.classList.contains('active')) {
+            backofficeButton.classList.add('active');
+            ossButton.classList.add('active');
             smappButton.classList.add('active');
         } else {
+            backofficeButton.classList.remove('active');
+            ossButton.classList.remove('active');
             smappButton.classList.remove('active');
         }
         desktopPayoutsButton.classList.remove('active');
@@ -204,15 +236,17 @@ function toggleSelectedButton(button) {
         payouts: buttons[3],
         ui: buttons[4],
         analytics: buttons[5],
-        smapp: buttons[6],
-        desktop: buttons[7],
-        desktop_payouts: buttons[8],
-        desktop_ui: buttons[9],
-        desktop_analytics: buttons[10],
-        mobile: buttons[11],
-        mobile_payouts: buttons[12],
-        mobile_ui: buttons[13],
-        mobile_analytics: buttons[14]
+        backoffice: buttons[6],
+        oss: buttons[7],
+        smapp: buttons[8],
+        desktop: buttons[9],
+        desktop_payouts: buttons[10],
+        desktop_ui: buttons[11],
+        desktop_analytics: buttons[12],
+        mobile: buttons[13],
+        mobile_payouts: buttons[14],
+        mobile_ui: buttons[15],
+        mobile_analytics: buttons[16]
     };
 
     button.classList.toggle('active');
@@ -231,6 +265,18 @@ function toggleSelectedButton(button) {
         });
     }
 
+    if (button === allButtons.backoffice) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+    }
+
+    if (button === allButtons.oss) {
+        allButtons.regression.classList.remove('active');
+        allButtons.sanity.classList.remove('active');
+        allButtons.smoke.classList.remove('active');
+    }
+
     if (button === allButtons.smapp) {
         allButtons.regression.classList.remove('active');
         allButtons.sanity.classList.remove('active');
@@ -243,6 +289,8 @@ function toggleSelectedButton(button) {
         allButtons.smoke.classList.remove('active');
         if (allButtons.desktop.classList.contains('active')) {
             allButtons.desktop.classList.remove('active');
+            allButtons.backoffice.classList.remove('active');
+            allButtons.oss.classList.remove('active');
             allButtons.smapp.classList.remove('active');
         }
         allButtons.mobile.classList.remove('active');
@@ -271,11 +319,14 @@ function toggleSelectedButton(button) {
 
     if (button === allButtons.desktop) {
         if (isActive(button)) {
+            allButtons.backoffice.classList.add('active');
+            allButtons.oss.classList.add('active');
             allButtons.smapp.classList.add('active');
         } else {
+            allButtons.backoffice.classList.remove('active');
+            allButtons.oss.classList.remove('active');
             allButtons.smapp.classList.remove('active');
         }
-        allButtons.smapp.classList.add('active');
         allButtons.desktop_payouts.classList.remove('active');
         allButtons.desktop_ui.classList.remove('active');
         allButtons.desktop_analytics.classList.remove('active');
@@ -288,6 +339,8 @@ function toggleSelectedButton(button) {
         allButtons.payouts.classList.remove('active');
         if (allButtons.desktop.classList.contains('active')) {
             allButtons.desktop.classList.remove('active');
+            allButtons.backoffice.classList.remove('active');
+            allButtons.oss.classList.remove('active');
             allButtons.smapp.classList.remove('active');
         }
     }
@@ -299,6 +352,8 @@ function toggleSelectedButton(button) {
         allButtons.ui.classList.remove('active');
         if (allButtons.desktop.classList.contains('active')) {
             allButtons.desktop.classList.remove('active');
+            allButtons.backoffice.classList.remove('active');
+            allButtons.oss.classList.remove('active');
             allButtons.smapp.classList.remove('active');
         }
     }
@@ -310,6 +365,8 @@ function toggleSelectedButton(button) {
         allButtons.analytics.classList.remove('active');
         if (allButtons.desktop.classList.contains('active')) {
             allButtons.desktop.classList.remove('active');
+            allButtons.backoffice.classList.remove('active');
+            allButtons.oss.classList.remove('active');
             allButtons.smapp.classList.remove('active');
         }
     }
@@ -365,6 +422,8 @@ function updateSelectedTableRows(buttons) {
         const payoutsSwitch = row.querySelector('.payouts-switch');
         const uiSwitch = row.querySelector('.ui-switch');
         const analyticsSwitch = row.querySelector('.analytics-switch');
+        const backofficeSwitch = row.querySelector('.backoffice-switch');
+        const ossSwitch = row.querySelector('.oss-switch');
         const smappSwitch = row.querySelector('.smapp-switch');
         const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
         const desktopUISwitch = row.querySelector('.desktop-ui-switch');
@@ -384,6 +443,8 @@ function updateSelectedTableRows(buttons) {
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
+        backofficeSwitch.checked = false;
+        ossSwitch.checked = false;
         smappSwitch.checked = false;
         desktopPayoutsSwitch.checked = false;
         desktopUISwitch.checked = false;
@@ -422,6 +483,14 @@ function updateSelectedTableRows(buttons) {
             analyticsSwitch.checked = true;
             toggleAnalyticsSwitch(analyticsSwitch);
         }
+        if (activeLabels.includes('BACKOFFICE')) {
+            backofficeSwitch.checked = true;
+            toggleBackofficeSwitch(backofficeSwitch);
+        }
+        if (activeLabels.includes('OSS')) {
+            ossSwitch.checked = true;
+            toggleOssSwitch(ossSwitch);
+        }
         if (activeLabels.includes('SMAPP')) {
             smappSwitch.checked = true;
             toggleSMAppSwitch(smappSwitch);
@@ -430,10 +499,14 @@ function updateSelectedTableRows(buttons) {
             desktopPayoutsSwitch.checked = true;
             desktopUISwitch.checked = true;
             desktopAnalyticsSwitch.checked = true;
+            backofficeSwitch.checked = true;
+            ossSwitch.checked = true;
             smappSwitch.checked = true;
             toggleDesktopPayoutsSwitch(desktopPayoutsSwitch);
             toggleDesktopUISwitch(desktopUISwitch);
             toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch);
+            toggleBackofficeSwitch(backofficeSwitch);
+            toggleOssSwitch(ossSwitch);
             toggleSMAppSwitch(smappSwitch);
         }
         if (activeLabels.includes('DESKTOP PAYOUTS')) {
@@ -498,21 +571,25 @@ function updateSelectedActionsState() {
 
 function updateTableBasedOnButtons() {
     const rows = document.querySelectorAll('#table-body tr');
-    const regressionButton = document.querySelector('.buttons-container button:first-child');
-    const sanityButton = document.querySelector('.buttons-container button:nth-child(2)');
-    const smokeButton = document.querySelector('.buttons-container button:nth-child(3)');
-    const payoutsButton = document.querySelector('.buttons-container button:nth-child(4)');
-    const uiButton = document.querySelector('.buttons-container button:nth-child(5)');
-    const analyticsButton = document.querySelector('.buttons-container button:nth-child(6)');
-    const smappButton = document.querySelector('.buttons-container button:nth-child(7)');
-    const desktopButton = document.querySelector('.buttons-container button:nth-child(8)');
-    const desktopPayoutsButton = document.querySelector('.buttons-container button:nth-child(9)');
-    const desktopUIButton = document.querySelector('.buttons-container button:nth-child(10)');
-    const desktopAnalyticsButton = document.querySelector('.buttons-container button:nth-child(11)');
-    const mobileButton = document.querySelector('.buttons-container button:nth-child(12)');
-    const mobilePayoutsButton = document.querySelector('.buttons-container button:nth-child(13)');
-    const mobileUIButton = document.querySelector('.buttons-container button:nth-child(14)');
-    const mobileAnalyticsButton = document.querySelector('.buttons-container button:nth-child(15)');
+    const regressionButton = document.querySelector('.buttons-container [data-label="regression"]');
+    const sanityButton = document.querySelector('.buttons-container [data-label="sanity"]');
+    const smokeButton = document.querySelector('.buttons-container [data-label="smoke"]');
+    const payoutsButton = document.querySelector('.buttons-container [data-label="payouts"]');
+    const uiButton = document.querySelector('.buttons-container [data-label="ui"]');
+    const analyticsButton = document.querySelector('.buttons-container [data-label="analytics"]');
+
+    const backofficeButton = document.querySelector('.buttons-container [data-label="backoffice"]');
+    const ossButton = document.querySelector('.buttons-container [data-label="oss"]');
+    const smappButton = document.querySelector('.buttons-container [data-label="smapp"]');
+    const desktopButton = document.querySelector('.buttons-container [data-label="desktop"]');
+    const desktopPayoutsButton = document.querySelector('.buttons-container [data-label="desktop_payouts"]');
+    const desktopUIButton = document.querySelector('.buttons-container [data-label="desktop_ui"]');
+    const desktopAnalyticsButton = document.querySelector('.buttons-container [data-label="desktop_analytics"]');
+
+    const mobileButton = document.querySelector('.buttons-container [data-label="mobile"]');
+    const mobilePayoutsButton = document.querySelector('.buttons-container [data-label="mobile_payouts"]');
+    const mobileUIButton = document.querySelector('.buttons-container [data-label="mobile_ui"]');
+    const mobileAnalyticsButton = document.querySelector('.buttons-container [data-label="mobile_analytics"]');
 
     rows.forEach(row => {
         const runSwitch = row.querySelector('input[type="checkbox"]:first-child');
@@ -522,6 +599,8 @@ function updateTableBasedOnButtons() {
         const payoutsSwitch = row.querySelector('.payouts-switch');
         const uiSwitch = row.querySelector('.ui-switch');
         const analyticsSwitch = row.querySelector('.analytics-switch');
+        const backofficeSwitch = row.querySelector('.backoffice-switch');
+        const ossSwitch = row.querySelector('.oss-switch');
         const smappSwitch = row.querySelector('.smapp-switch');
         const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
         const desktopUISwitch = row.querySelector('.desktop-ui-switch');
@@ -537,6 +616,8 @@ function updateTableBasedOnButtons() {
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
+        backofficeSwitch.checked = false;
+        ossSwitch.checked = false;
         smappSwitch.checked = false;
         desktopPayoutsSwitch.checked = false;
         desktopUISwitch.checked = false;
@@ -551,6 +632,8 @@ function updateTableBasedOnButtons() {
             payoutsButton.classList.contains('active') ||
             uiButton.classList.contains('active') ||
             analyticsButton.classList.contains('active') ||
+            backofficeButton.classList.contains('active') ||
+            ossButton.classList.contains('active') ||
             smappButton.classList.contains('active') ||
             desktopButton.classList.contains('active') ||
             desktopPayoutsButton.classList.contains('active') ||
@@ -598,6 +681,16 @@ function updateTableBasedOnButtons() {
                 toggleAnalyticsSwitch(analyticsSwitch);
             }
 
+            if (backofficeButton.classList.contains('active')) {
+                backofficeSwitch.checked = true;
+                toggleBackofficeSwitch(backofficeSwitch);
+            }
+            
+            if (ossButton.classList.contains('active')) {
+                ossSwitch.checked = true;
+                toggleOssSwitch(ossSwitch);
+            }
+
             if (smappButton.classList.contains('active')) {
                 smappSwitch.checked = true;
                 toggleSMAppSwitch(smappSwitch);
@@ -607,10 +700,14 @@ function updateTableBasedOnButtons() {
                 desktopPayoutsSwitch.checked = true;
                 desktopUISwitch.checked = true;
                 desktopAnalyticsSwitch.checked = true;
+                backofficeSwitch.checked = true;
+                ossSwitch.checked = true;
                 smappSwitch.checked = true;
                 toggleDesktopPayoutsSwitch(desktopPayoutsSwitch);
                 toggleDesktopUISwitch(desktopUISwitch);
                 toggleDesktopAnalyticsSwitch(desktopAnalyticsSwitch);
+                toggleBackofficeSwitch(backofficeSwitch);
+                toggleOssSwitch(ossSwitch);
                 toggleSMAppSwitch(smappSwitch);
             }
 
@@ -698,6 +795,8 @@ function toggleRegressionSwitch(regressionSwitch) {
     const payoutsSwitch = row.querySelector('.payouts-switch');
     const uiSwitch = row.querySelector('.ui-switch');
     const analyticsSwitch = row.querySelector('.analytics-switch');
+    const backofficeSwitch = row.querySelector('.backoffice-switch');
+    const ossSwitch = row.querySelector('.oss-switch');
     const smappSwitch = row.querySelector('.smapp-switch');
     const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
     const desktopUISwitch = row.querySelector('.desktop-ui-switch');
@@ -712,6 +811,8 @@ function toggleRegressionSwitch(regressionSwitch) {
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
+        backofficeSwitch.checked = false;
+        ossSwitch.checked = false;
         smappSwitch.checked = false;
         desktopPayoutsSwitch.checked = false;
         desktopUISwitch.checked = false;
@@ -730,6 +831,8 @@ function toggleSanitySwitch(sanitySwitch) {
     const payoutsSwitch = row.querySelector('.payouts-switch');
     const uiSwitch = row.querySelector('.ui-switch');
     const analyticsSwitch = row.querySelector('.analytics-switch');
+    const backofficeSwitch = row.querySelector('.backoffice-switch');
+    const ossSwitch = row.querySelector('.oss-switch');
     const smappSwitch = row.querySelector('.smapp-switch');
     const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
     const desktopUISwitch = row.querySelector('.desktop-ui-switch');
@@ -744,6 +847,8 @@ function toggleSanitySwitch(sanitySwitch) {
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
+        backofficeSwitch.checked = false;
+        ossSwitch.checked = false;
         smappSwitch.checked = false;
         desktopPayoutsSwitch.checked = false;
         desktopUISwitch.checked = false;
@@ -762,6 +867,8 @@ function toggleSmokeSwitch(smokeSwitch) {
     const payoutsSwitch = row.querySelector('.payouts-switch');
     const uiSwitch = row.querySelector('.ui-switch');
     const analyticsSwitch = row.querySelector('.analytics-switch');
+    const backofficeSwitch = row.querySelector('.backoffice-switch');
+    const ossSwitch = row.querySelector('.oss-switch');
     const smappSwitch = row.querySelector('.smapp-switch');
     const desktopPayoutsSwitch = row.querySelector('.desktop-payouts-switch');
     const desktopUISwitch = row.querySelector('.desktop-ui-switch');
@@ -776,6 +883,8 @@ function toggleSmokeSwitch(smokeSwitch) {
         payoutsSwitch.checked = false;
         uiSwitch.checked = false;
         analyticsSwitch.checked = false;
+        backofficeSwitch.checked = false;
+        ossSwitch.checked = false;
         smappSwitch.checked = false;
         desktopPayoutsSwitch.checked = false;
         desktopUISwitch.checked = false;
@@ -843,6 +952,32 @@ function toggleAnalyticsSwitch(analyticsSwitch) {
         mobileAnalyticsSwitch.checked = false;
     } else if (desktopAnalyticsSwitch.checked || mobileAnalyticsSwitch.checked) {
         analyticsSwitch.checked = false;
+    }
+    updateOutput();
+}
+
+function toggleBackofficeSwitch(backofficeSwitch) {
+    const row = backofficeSwitch.closest('tr');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
+    if (backofficeSwitch.checked) {
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
+    }
+    updateOutput();
+}
+
+function toggleOssSwitch(ossSwitch) {
+    const row = ossSwitch.closest('tr');
+    const regressionSwitch = row.querySelector('.regression-switch');
+    const sanitySwitch = row.querySelector('.sanity-switch');
+    const smokeSwitch = row.querySelector('.smoke-switch');
+    if (ossSwitch.checked) {
+        regressionSwitch.checked = false;
+        sanitySwitch.checked = false;
+        smokeSwitch.checked = false;
     }
     updateOutput();
 }
@@ -995,10 +1130,12 @@ function updateOutput() {
                     }
                 });
 
-                const hasAllDesktop = selectedColumns.includes('smapp') &&
-                                     selectedColumns.includes('desktop_payouts') &&
-                                     selectedColumns.includes('desktop_ui') &&
-                                     selectedColumns.includes('desktop_analytics');
+                const hasAllDesktop = selectedColumns.includes('backoffice') &&
+                                        selectedColumns.includes('oss') &&
+                                        selectedColumns.includes('smapp') &&
+                                        selectedColumns.includes('desktop_payouts') &&
+                                        selectedColumns.includes('desktop_ui') &&
+                                        selectedColumns.includes('desktop_analytics');
 
                 const hasAllMobile = selectedColumns.includes('mobile_payouts') &&
                                     selectedColumns.includes('mobile_ui') &&
@@ -1006,19 +1143,23 @@ function updateOutput() {
 
                 const hasAllColumns = hasAllDesktop && hasAllMobile;
 
-                const hasPayoutsUiAnalyticsSmapp = selectedColumns.includes('payouts') &&
-                                                  selectedColumns.includes('ui') &&
-                                                  selectedColumns.includes('analytics') &&
-                                                  selectedColumns.includes('smapp');
-
+                const hasPayoutsUiAnalyticsBackofficeOssSmapp = selectedColumns.includes('payouts') &&
+                                                    selectedColumns.includes('ui') &&
+                                                    selectedColumns.includes('analytics') &&
+                                                    selectedColumns.includes('backoffice') && 
+                                                    selectedColumns.includes('oss') &&
+                                                    selectedColumns.includes('smapp');
+                                                    
                 if (hasAllColumns) {
                     selectedColumns.length = 0;
                     selectedColumns.push('regression');
-                } else if (hasPayoutsUiAnalyticsSmapp) {
+                } else if (hasPayoutsUiAnalyticsBackofficeOssSmapp) {
                     selectedColumns.length = 0;
                     selectedColumns.push('regression');
                 } else {
                     if (hasAllDesktop) {
+                        selectedColumns.splice(selectedColumns.indexOf('backoffice'), 1);
+                        selectedColumns.splice(selectedColumns.indexOf('oss'), 1);
                         selectedColumns.splice(selectedColumns.indexOf('smapp'), 1);
                         selectedColumns.splice(selectedColumns.indexOf('desktop_payouts'), 1);
                         selectedColumns.splice(selectedColumns.indexOf('desktop_ui'), 1);
@@ -1143,7 +1284,7 @@ function renderSearchSummaryChart(containerId, summary) {
 
 async function triggerPipeline(branch) {
 
-    console.log('Triggering on branch:', branch);
+    // console.log('Triggering on branch:', branch);
 
     try {
         const response = await fetch('/api/trigger-pipeline', {
@@ -1263,6 +1404,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>
                     <label class="switch">
                         <input type="checkbox" class="analytics-switch" disabled onchange="toggleAnalyticsSwitch(this)" data-column="analytics">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="backoffice-switch" disabled onchange="toggleBackofficeSwitch(this)" data-column="backoffice">
+                        <span class="slider round"></span>
+                    </label>
+                </td>
+                <td>
+                    <label class="switch">
+                        <input type="checkbox" class="oss-switch" disabled onchange="toggleOssSwitch(this)" data-column="oss">
                         <span class="slider round"></span>
                     </label>
                 </td>
@@ -1403,7 +1556,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
     
             if (response.status === 401) {
-                // Not logged in → return false silently
                 return false;
             }
     
@@ -1432,7 +1584,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const li = document.createElement('li');
                 li.textContent = `${u.username} (${u.name}) `;
     
-                // Add delete button/icon
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = '❌';
                 deleteBtn.style.marginLeft = '10px';
@@ -1530,12 +1681,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
-                credentials: 'include' // 👈 important!
+                credentials: 'include'
             });
     
             if (!response.ok) throw new Error('Login failed');
     
-            const { user } = await response.json(); // no token!
+            const { user } = await response.json();
             showLoggedInState(user);
         } catch (error) {
             showError(error.message);
@@ -1585,7 +1736,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // UI state functions
     function showLoggedInState(user) {
         if (user.isAdmin) {
             adminSection.style.display = 'block';
@@ -1596,7 +1746,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminSection.style.display = 'none';
             document.getElementById('admin-games-section').style.display = 'none';
             document.getElementById('generate-btn').disabled = false;
-            document.getElementById('app-content').style.display = 'block'; // 👈 show the main UI
+            document.getElementById('app-content').style.display = 'block';
+            document.getElementById('footer').style.display = 'block';
         }
         loginForm.classList.remove('centered');
         loginForm.style.display = 'none';
@@ -1611,7 +1762,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentUserSpan.textContent = '';
         document.getElementById('generate-btn').disabled = true;
         document.getElementById('pipeline-trigger-controls').style.display = 'none';
-        document.getElementById('app-content').style.display = 'none'; // 👈 hide the main UI
+        document.getElementById('app-content').style.display = 'none';
+        document.getElementById('footer').style.display = 'none';
         adminSection.style.display = 'none';
         document.getElementById('admin-games-section').style.display = 'none';
         document.getElementById('username').value = '';
@@ -1633,7 +1785,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let slimBranchSelector;
 
-    // Add these new functions to handle GitLab API operations
     async function fetchBranches() {
         const branchSelector = document.getElementById('branch-selector');
         
@@ -1644,7 +1795,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const response = await fetch('/api/branches', {
                 method: 'GET',
-                credentials: 'include' // Include session cookie
+                credentials: 'include'
             });
             
             if (!response.ok) {
@@ -1658,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!Array.isArray(branches)) branches = [];
             if (!branches.includes('main')) branches.unshift('main');
             
-            // Initialize SlimSelect with proper configuration for large datasets
+            // Initialize SlimSelect
             slimBranchSelector = new SlimSelect({
                 select: '#branch-selector',
                 settings: {
@@ -1774,7 +1925,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const pipelineStatus = document.getElementById('pipeline-status');
         if (!pipelineStatus) return;
 
-        // Remove previous message of same id if replacing
         if (replace) {
             document.getElementById(id)?.remove();
         }
@@ -1815,9 +1965,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             messageDiv.appendChild(preBlock);
         }
 
-        // Insert before the progress/status container to keep progress visible below
         const container = document.getElementById('pipeline-status-container');
-        pipelineStatus.insertBefore(messageDiv, container || null);
+
+        if (replace) {
+            document.getElementById(id)?.remove();
+        }
+
+        if (container) {
+            container.after(messageDiv);
+        } else {
+            pipelineStatus.appendChild(messageDiv);
+        }
     }    
     
     function updatePipelineStatusDisplay(status) {
@@ -1878,8 +2036,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         showPipelineStatus('✅ Pipeline completed. Click below to load test results.', 'info', '', 'results-message');
 
                         const pipelineStatusDiv = document.getElementById('pipeline-status');
-                        let loadBtn = document.getElementById('load-results-btn');
-                        let retryBtn = document.getElementById('retry-results-btn');
+                        let loadBtn = document.getElementById('load-results-btn')
 
                         if (!loadBtn) {
                             loadBtn = document.createElement('button');
@@ -1889,40 +2046,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                             pipelineStatusDiv.appendChild(loadBtn);
                         }
 
-                        if (!retryBtn) {
-                            retryBtn = document.createElement('button');
-                            retryBtn.id = 'retry-results-btn';
-                            retryBtn.className = 'copy-button';
-                            retryBtn.textContent = 'Retry Loading Results';
-                            retryBtn.style.marginLeft = '10px';
-                            pipelineStatusDiv.appendChild(retryBtn);
-                        }
-
                         const loadResults = async () => {
                             loadBtn.disabled = true;
-                            retryBtn.disabled = true;
                             loadBtn.textContent = 'Loading...';
 
                             try {
-                                const summaryRes = await fetch(`/api/pipeline-summary/${pipelineId}`);
-                                if (!summaryRes.ok) throw new Error('Failed to fetch summary');
-                                const { jobs } = await summaryRes.json();
+                                loadPipelineResultsById(pipelineId, 'pipeline-info').then(success => {
+                                    if (success) {
+                                        showPipelineStatus('✅ Results loaded successfully.', 'success', '', 'results-loaded-message', true);
+                                        document.getElementById('results-message')?.remove();
+                                        loadBtn.textContent = 'Reload Test Results';
 
-                                await loadAndDisplayArtifacts(jobs);
-                                showPipelineStatus('✅ Results loaded successfully.', 'success', '', 'results-loaded-message', true);
-                                loadBtn.textContent = 'Reload Test Results';
+                                        document.getElementById('test-artifacts')?.scrollIntoView({
+                                            behavior: 'smooth',
+                                            block: 'start'
+                                        });
+                                    } else {
+                                        showPipelineStatus('❌ No data found for this pipeline.', 'error', '', 'results-loaded-message', true);
+                                        document.getElementById('results-message')?.remove();
+                                        loadBtn.textContent = 'Retry Loading';
+                                    }
+                                });
                             } catch (err) {
                                 console.error('❌ Error loading results:', err);
                                 showPipelineStatus('❌ Failed to load test results.', 'error', '', 'results-loaded-message', true);
+                                document.getElementById('results-message')?.remove();
                                 loadBtn.textContent = 'Retry Loading';
                             } finally {
                                 loadBtn.disabled = false;
-                                retryBtn.disabled = false;
                             }
                         };
-
                         loadBtn.onclick = loadResults;
-                        retryBtn.onclick = loadResults;
                     }, 3000);
                 }
             } catch (error) {
@@ -1931,107 +2085,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPipelineStatus('❌ Pipeline updates stopped due to error.', 'error');
             }
         }, 10000);
-    }     
-                
-    async function loadAndDisplayArtifacts(jobs) {
-        const infoContainer = document.getElementById('pipeline-info');
-        document.getElementById('test-artifacts')?.remove();
-    
-        const wrapper = document.createElement('div');
-        wrapper.id = 'test-artifacts';
-    
-        for (const job of jobs) {
-            if (!job.name || !job.name.startsWith('test_')) continue;
-    
-            const box = document.createElement('div');
-            box.classList.add('job-artifacts');
-    
-            const title = document.createElement('h4');
-
-            // Extract game name
-            const baseName = job.name.replace(/^test_/, '');
-            const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
-            
-            // Parse suites into title case (if available)
-            let formattedSuites = '';
-            if (job.suites) {
-                const suiteList = job.suites.split(',').map(s => {
-                    return s
-                        .replace(/_/g, ' ')
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-                });
-                formattedSuites = ` (${suiteList.join(', ')})`;
-            }
-            
-            title.textContent = `Job: ${displayGame}${formattedSuites}`;
-            box.appendChild(title);            
-    
-            const response = await fetch(`/api/pipeline-artifacts/${job.id}`);
-            if (!response.ok) {
-                box.innerHTML += '<div style="color:gray;">No artifact data available</div>';
-                wrapper.appendChild(box);
-                continue;
-            }
-    
-            const { artifacts } = await response.json();
-    
-            // Always add the box first
-            wrapper.appendChild(box);
-    
-            // Initial results
-            if (artifacts.initial_results?.length) {
-                const summary = summarizeResults(artifacts.initial_results);
-    
-                const summaryBox = document.createElement('div');
-                summaryBox.className = 'artifact-summary';
-                summaryBox.innerHTML = `
-                    <h5>Initial Run</h5>
-                    <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
-                `;
-    
-                const chartContainer = document.createElement('div');
-                chartContainer.id = `chart-initial-${job.id}`;
-                chartContainer.style.maxWidth = '500px';
-    
-                box.appendChild(summaryBox);
-                box.appendChild(chartContainer);
-    
-                setTimeout(() => {
-                    renderTestSummaryChart(`chart-initial-${job.id}`, summary, `${job.name} Initial`);
-                }, 0);
-                renderFailures(box, artifacts.initial_results);
-            }
-    
-            // Rerun results
-            if (artifacts.rerun_results?.length) {
-                const summary = summarizeResults(artifacts.rerun_results);
-    
-                const summaryBox = document.createElement('div');
-                summaryBox.className = 'artifact-summary';
-                summaryBox.innerHTML = `
-                    <h5>Re-run</h5>
-                    <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
-                `;
-    
-                const chartContainer = document.createElement('div');
-                chartContainer.id = `chart-rerun-${job.id}`;
-                chartContainer.style.maxWidth = '500px';
-    
-                box.appendChild(summaryBox);
-                box.appendChild(chartContainer);
-    
-                setTimeout(() => {
-                    renderTestSummaryChart(`chart-rerun-${job.id}`, summary, `${job.name} Re-run`);
-                }, 0);
-                renderFailures(box, artifacts.rerun_results);
-            }
-        }
-    
-        infoContainer.appendChild(wrapper);
-    }    
-    
+    }   
+       
     function summarizeResults(results) {
         const summary = { total: 0, passed: 0, failed: 0, skipped: 0 };
         results.forEach(r => {
@@ -2047,18 +2102,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     
         const failedSection = document.createElement('div');
         failedSection.className = 'failed-tests-section';
-        failedSection.style.marginTop = '10px';
+        failedSection.style.marginTop = '20px';
     
         const header = document.createElement('strong');
-        header.textContent = 'Failed tests:';
+        header.textContent = '⚠️ Failed tests:';
         header.style.display = 'block';
         header.style.marginBottom = '6px';
         failedSection.appendChild(header);
     
         failedTests.forEach((test, idx) => {
             const testName = (test.name || test.classname || 'Unnamed Test').slice(0, 80);
-    
-            // Container for test name + button in a single row
+
             const testRow = document.createElement('div');
             testRow.style.display = 'flex';
             testRow.style.alignItems = 'center';
@@ -2071,7 +2125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
             const button = document.createElement('button');
             button.textContent = `Show logs`;
-            button.className = 'copy-button';
+            button.className = 'logs-button';
     
             const pre = document.createElement('pre');
             pre.className = 'log-output';
@@ -2102,203 +2156,246 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('search-btn').addEventListener('click', async () => {
         const searchId = document.getElementById('search-id').value.trim();
-        const resultsDiv = document.getElementById('search-results');
-        resultsDiv.innerHTML = '';
+        const searchFormDiv = document.getElementById('search-form');
+        document.getElementById('test-artifacts')?.remove();
+        const errorMessageDiv = document.getElementById('search-error-message');
+            if (errorMessageDiv) {
+                errorMessageDiv.remove();
+            }
     
         if (!searchId) {
-            resultsDiv.innerHTML = '<p style="color:red;">Please enter a valid ID</p>';
+            const errorMessage = document.createElement('p');
+            errorMessage.id = 'search-error-message';
+            errorMessage.style.color = 'red';
+            errorMessage.textContent = 'Please enter a valid ID';
+            searchFormDiv.appendChild(errorMessage);
             return;
         }
-    
         try {
-            const response = await fetch(`/api/pipeline-summary/${searchId}`);
-            if (!response.ok) throw new Error('Not found');
-    
-            const { pipeline, jobs, summary } = await response.json();
-    
-            let summaryHtml = `
-                <div id="pipeline-summary">
-                <h4>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h4>
-                <p>Ref: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
-                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
-                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div></div><br>
-                <h4>Pipeline Test Jobs</h4>
-            `;
-    
-            resultsDiv.innerHTML = summaryHtml;
-    
-            // Render overall pipeline chart
-            renderSearchSummaryChart('search-summary-chart', summary);
-    
-            // Loop through jobs and render summaries + charts
-            for (const job of jobs) {
-                if (!job.name || !job.name.startsWith('test_')) continue;
-    
-                const jobBox = document.createElement('div');
-                jobBox.classList.add('job-summary');
-                // Format display name from job name and suites
-                const baseName = job.name.replace(/^test_/, '');
-                const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
-
-                // Format suites nicely if available
-                let suiteDisplay = '';
-                if (job.suites) {
-                    const suiteList = job.suites.split(',').map(s =>
-                        s.replace(/_/g, ' ')
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ')
-                    );
-                    suiteDisplay = ` (${suiteList.join(', ')})`;
+            loadPipelineResultsById(searchId, 'pipeline-search-section').then(success => {
+                if (success) {
+                    document.getElementById('test-artifacts')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                } else {
+                    const errorMessage = document.createElement('p');
+                    errorMessage.id = 'search-error-message';
+                    errorMessage.style.color = 'red';
+                    errorMessage.textContent = `No data found for ID: ${searchId}`;
+                    searchFormDiv.appendChild(errorMessage);
+                    return;
                 }
-
-                jobBox.innerHTML = `
-                    <strong>${displayGame}${suiteDisplay}</strong>: ${job.status}
-                    (${job.total_tests} tests, ${job.failed_tests} failed)<br>
-                    <div style="font-weight: bold; margin-top: 5px;">Initial run</div>
-                    <div id="chart-search-${job.id}" style="max-width: 500px; margin-top: 10px;"></div>
-                `;
-    
-                resultsDiv.appendChild(jobBox);
-    
-                const artifactsRes = await fetch(`/api/pipeline-artifacts/${job.id}`);
-                if (!artifactsRes.ok) continue;
-    
-                const { artifacts } = await artifactsRes.json();
-    
-                if (artifacts.initial_results && artifacts.initial_results.length > 0) {
-                    const initialSummary = summarizeResults(artifacts.initial_results);
-                    setTimeout(() => {
-                        renderTestSummaryChart(`chart-search-${job.id}`, initialSummary, `${job.name} Initial`);
-                    }, 0);
-                    renderFailures(jobBox, artifacts.initial_results);
-                }
-    
-                if (artifacts.rerun_results && artifacts.rerun_results.length > 0) {
-                    const rerunContainerId = `chart-search-${job.id}-rerun`;
-    
-                    const rerunLabel = document.createElement('div');
-                    rerunLabel.textContent = 'Re-run';
-                    rerunLabel.style.fontWeight = 'bold';
-                    rerunLabel.style.marginTop = '5px';
-    
-                    const rerunContainer = document.createElement('div');
-                    rerunContainer.id = rerunContainerId;
-                    rerunContainer.style.maxWidth = '500px';
-                    // rerunContainer.style.height = '120px';
-                    rerunContainer.style.marginTop = '10px';
-    
-                    jobBox.appendChild(rerunLabel);
-                    jobBox.appendChild(rerunContainer);
-    
-                    const rerunSummary = summarizeResults(artifacts.rerun_results);
-                    setTimeout(() => {
-                        renderTestSummaryChart(rerunContainerId, rerunSummary, `${job.name} Re-run`);
-                    }, 0);
-                    renderFailures(jobBox, artifacts.rerun_results);
-                }
-            }
+            });
         } catch (err) {
             console.error('Search error:', err);
-            resultsDiv.innerHTML = `<p style="color:red;">No data found for ID: ${searchId}</p>`;
+            const errorMessage = document.createElement('p');
+            errorMessage.id = 'search-error-message';
+            errorMessage.style.color = 'red';
+            errorMessage.textContent = `No data found for ID: ${id}`;
+            searchFormDiv.appendChild(errorMessage);
+            return;
         }
     });
 
     const pathMatch = window.location.pathname.match(/^\/results\/(\d+)/);
-        if (pathMatch) {
-            const pipelineOrJobId = pathMatch[1];
-            loadPipelineResultsById(pipelineOrJobId);
-        }
-    
-    async function loadPipelineResultsById(id) {
-        const resultsDiv = document.getElementById('search-results');
-        resultsDiv.innerHTML = '';
-    
-        try {
-            const response = await fetch(`/api/pipeline-summary/${id}`);
-            if (!response.ok) throw new Error('Not found');
-    
-            const { pipeline, jobs, summary } = await response.json();
-    
-            resultsDiv.innerHTML = `
-                <div id="pipeline-summary">
-                <h4>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h4>
-                <p>Ref: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
-                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
-                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div></div><br>
-                <h4>Pipeline Test Jobs</h4>
-            `;
-    
-            renderSearchSummaryChart('search-summary-chart', summary);
-    
-            for (const job of jobs) {
-                if (!job.name || !job.name.startsWith('test_')) continue;
-    
-                const jobBox = document.createElement('div');
-                jobBox.classList.add('job-summary');
-    
-                const baseName = job.name.replace(/^test_/, '');
-                const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
-    
-                let suiteDisplay = '';
-                if (job.suites) {
-                    const suiteList = job.suites.split(',').map(s =>
-                        s.replace(/_/g, ' ')
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ')
-                    );
-                    suiteDisplay = ` (${suiteList.join(', ')})`;
-                }
-    
-                jobBox.innerHTML = `
-                    <strong>${displayGame}${suiteDisplay}</strong>: ${job.status}
-                    (${job.total_tests} tests, ${job.failed_tests} failed)<br>
-                    <div style="font-weight: bold; margin-top: 5px;">Initial run</div>
-                    <div id="chart-search-${job.id}" style="max-width: 500px; margin-top: 10px;"></div>
-                `;
-    
-                resultsDiv.appendChild(jobBox);
-    
-                const artifactsRes = await fetch(`/api/pipeline-artifacts/${job.id}`);
-                if (!artifactsRes.ok) continue;
-    
-                const { artifacts } = await artifactsRes.json();
-    
-                if (artifacts.initial_results?.length) {
-                    const summary = summarizeResults(artifacts.initial_results);
-                    renderTestSummaryChart(`chart-search-${job.id}`, summary, `${job.name} Initial`);
-                    renderFailures(jobBox, artifacts.initial_results);
-                }
-    
-                if (artifacts.rerun_results?.length) {
-                    const rerunId = `chart-search-${job.id}-rerun`;
-    
-                    const rerunLabel = document.createElement('div');
-                    rerunLabel.textContent = 'Re-run';
-                    rerunLabel.style.fontWeight = 'bold';
-                    rerunLabel.style.marginTop = '5px';
-    
-                    const rerunContainer = document.createElement('div');
-                    rerunContainer.id = rerunId;
-                    rerunContainer.style.maxWidth = '500px';
-                    rerunContainer.style.marginTop = '10px';
-    
-                    jobBox.appendChild(rerunLabel);
-                    jobBox.appendChild(rerunContainer);
-    
-                    const summary = summarizeResults(artifacts.rerun_results);
-                    renderTestSummaryChart(rerunId, summary, `${job.name} Re-run`);
-                    renderFailures(jobBox, artifacts.rerun_results);
-                }
+    if (pathMatch) {
+        const pipelineOrJobId = pathMatch[1];
+        const searchFormDiv = document.getElementById('search-form');
+        document.getElementById('test-artifacts')?.remove();
+        const errorMessageDiv = document.getElementById('search-error-message');
+            if (errorMessageDiv) {
+                errorMessageDiv.remove();
             }
-            setTimeout(() => {
-                document.getElementById('search-results')?.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
+    
+        if (!pipelineOrJobId) {
+            const errorMessage = document.createElement('p');
+            errorMessage.id = 'search-error-message';
+            errorMessage.style.color = 'red';
+            errorMessage.textContent = 'Please enter a valid ID';
+            searchFormDiv.appendChild(errorMessage);
+            return;
+        }
+        try {
+            loadPipelineResultsById(pipelineOrJobId, 'pipeline-search-section').then(success => {
+                if (success) {
+                    document.getElementById('test-artifacts')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                } else {
+                    const errorMessage = document.createElement('p');
+                    errorMessage.id = 'search-error-message';
+                    errorMessage.style.color = 'red';
+                    errorMessage.textContent = `No data found for ID: ${pipelineOrJobId}`;
+                    searchFormDiv.appendChild(errorMessage);
+                    return;
+                }
+            });
         } catch (err) {
-            console.error('Failed to load results:', err);
-            resultsDiv.innerHTML = `<p style="color:red;">No data found for ID: ${id}</p>`;
+            console.error('Search error:', err);
+            const errorMessage = document.createElement('p');
+            errorMessage.id = 'search-error-message';
+            errorMessage.style.color = 'red';
+            errorMessage.textContent = `No data found for ID: ${id}`;
+            searchFormDiv.appendChild(errorMessage);
+            return;
         }
     }
-    
+
+    async function loadPipelineResultsById(id, containerId) {
+        try {
+            const response = await fetch(`/api/pipeline-summary/${id}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error fetching pipeline summary:', errorText);
+                return false;
+            }
+
+            const { pipeline, jobs, summary } = await response.json();
+
+            const artifactsSection = document.getElementById(containerId);
+            document.getElementById('test-artifacts')?.remove();
+
+            const wrapper = document.createElement('div');
+            wrapper.id = 'test-artifacts';
+            artifactsSection.appendChild(wrapper);
+
+            // === PIPELINE SUMMARY ===
+            const summaryBox = document.createElement('div');
+            summaryBox.id = 'pipeline-summary';
+            summaryBox.innerHTML = `
+                <h2>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h2>
+                <p>Branch: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
+                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
+                <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div>
+            `;
+            wrapper.appendChild(summaryBox);
+
+            setTimeout(() => {
+                renderSearchSummaryChart('search-summary-chart', summary);
+            }, 100);
+
+            // === JOBS HEADER ===
+            const testJobsBox = document.createElement('div');
+            testJobsBox.className = 'test-jobs-summary';
+            testJobsBox.innerHTML = `<h2>Test Jobs</h2>`;
+            wrapper.appendChild(testJobsBox);
+
+            for (const job of jobs) {
+                if (!job.name || !job.name.startsWith('test_')) continue;
+
+                const resultsRes = await fetch(`/api/job-results/${job.id}`);
+                if (!resultsRes.ok) continue;
+
+                const { initial_results, rerun_results } = await resultsRes.json();
+
+                const box = document.createElement('div');
+                box.classList.add('job-artifacts');
+
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'job-details';
+                contentWrapper.style.display = 'none';
+
+                const baseName = job.name.replace(/^test_/, '');
+                const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
+
+                let formattedSuites = '';
+                if (job.suites) {
+                    const suiteList = job.suites.split(',').map(s =>
+                        s.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                    );
+                    formattedSuites = ` (${suiteList.join(', ')})`;
+                }
+
+                // === COLLAPSIBLE HEADER ===
+                const hasFailures = [...(initial_results || []), ...(rerun_results || [])].some(t => t.status === 'failed');
+                const header = document.createElement('div');
+                header.className = 'job-header';
+                header.style.cursor = 'pointer';
+                header.style.display = 'flex';
+                header.style.alignItems = 'center';
+                header.style.gap = '10px';
+
+                const arrow = document.createElement('span');
+                arrow.textContent = '▶';
+                arrow.style.transition = 'transform 0.2s';
+                header.appendChild(arrow);
+
+                const title = document.createElement('h3');
+                title.style.margin = 0;
+                title.textContent = `Job: ${displayGame}${formattedSuites}`;
+                header.appendChild(title);
+
+                if (hasFailures) {
+                    const warning = document.createElement('span');
+                    warning.textContent = '⚠️';
+                    header.appendChild(warning);
+                }
+
+                header.onclick = () => {
+                    const isVisible = contentWrapper.style.display === 'block';
+                    contentWrapper.style.display = isVisible ? 'none' : 'block';
+                    arrow.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+                };
+
+                box.appendChild(header);
+                box.appendChild(contentWrapper);
+                wrapper.appendChild(box);
+
+                // === INITIAL RESULTS ===
+                if (initial_results?.length) {
+                    const summary = summarizeResults(initial_results);
+                    const summaryBox = document.createElement('div');
+                    summaryBox.className = 'artifact-summary';
+                    summaryBox.innerHTML = `
+                        <h4>Initial Run</h4>
+                        <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                    `;
+
+                    const chartContainer = document.createElement('div');
+                    chartContainer.id = `chart-initial-${job.id}`;
+                    chartContainer.style.maxWidth = '500px';
+
+                    contentWrapper.appendChild(summaryBox);
+                    contentWrapper.appendChild(chartContainer);
+
+                    await new Promise(resolve => setTimeout(() => {
+                        renderTestSummaryChart(`chart-initial-${job.id}`, summary, `${job.name} Initial`);
+                        renderFailures(contentWrapper, initial_results);
+                        resolve();
+                    }, 100));
+                }
+
+                // === RERUN RESULTS ===
+                if (rerun_results?.length) {
+                    const summary = summarizeResults(rerun_results);
+                    const summaryBox = document.createElement('div');
+                    summaryBox.className = 'artifact-summary';
+                    summaryBox.innerHTML = `
+                        <h4>Re-run</h4>
+                        <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                    `;
+
+                    const chartContainer = document.createElement('div');
+                    chartContainer.id = `chart-rerun-${job.id}`;
+                    chartContainer.style.maxWidth = '500px';
+
+                    contentWrapper.appendChild(summaryBox);
+                    contentWrapper.appendChild(chartContainer);
+
+                    await new Promise(resolve => setTimeout(() => {
+                        renderTestSummaryChart(`chart-rerun-${job.id}`, summary, `${job.name} Re-run`);
+                        renderFailures(contentWrapper, rerun_results);
+                        resolve();
+                    }, 100));
+                }
+            }
+
+            return true;
+        } catch (err) {
+            console.error('Failed to load results:', err);
+            return false;
+        }
+    }
 });

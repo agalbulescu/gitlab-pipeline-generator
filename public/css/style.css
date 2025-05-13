@@ -9,7 +9,7 @@ body { background-color: #1f1f1f; color: #fff; }
 body.light-mode { background-color: #fff; color: #000; }
 
 .container {
-    max-width: 1700px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 20px;
 }
@@ -55,31 +55,44 @@ h1 {
 /* Buttons container */
 .buttons-container {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px 10px;
-    gap: 20px;
-    background-color: #1f1f1f;
-}
-.buttons-container button {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    background-color: #282828;
     padding: 10px;
-    border: none;
+    border-radius: 6px;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button-group h4 {
+    margin: 5px 20px;
+    font-weight: 100;
+}
+
+.button-group button {
+    padding: 6px 10px;
     background-color: #333;
     color: #fff;
     font-weight: 600;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 6px;
     flex-shrink: 0;
     border: 1px solid dimgrey;
+    transition: background-color 0.2s;
 }
-.buttons-container button:hover, 
-.buttons-container button.active { background-color: #4CAF50; }
+.button-group button:hover, 
+.button-group button.active { background-color: #4CAF50; }
 .buttons-container.light-mode { background-color: #fff; }
-.buttons-container.light-mode button { background-color: #ccc; color: #000; }
-.buttons-container.light-mode button:hover,
-.buttons-container.light-mode button.active { background-color: #4CAF50; }
+.button-group.light-mode button { background-color: #ccc; color: #000; }
+.button-group.light-mode button:hover,
+.button-group.light-mode button.active { background-color: #4CAF50; }
 
-.left-buttons { display: flex; gap: 6px; }
+/* .left-buttons { display: flex; gap: 6px; } */
 
 /* Table styles */
 table {
@@ -101,8 +114,8 @@ th, td {
 }
 th { background-color: #333; }
 td { background-color: #222; cursor: pointer; }
-.light-mode th { background-color: #ddd; }
-.light-mode td { background-color: #eee; }
+.light-mode th { background-color: #ddd; color: #000;}
+.light-mode td { background-color: #eee; color: #000;}
 
 th:not(#game-name-header), td:not(.game-name-cell) {
     width: 62px !important;
@@ -145,6 +158,21 @@ textarea {
     width: 200px;
     height: 60px;
     flex-shrink: 0;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.logs-button {
+    background-color: #4CAF50;
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+    width: 120px;
+    height: 40px;
+    flex-shrink: 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 /* Edit games section */
@@ -249,8 +277,8 @@ input:checked + .slider:before { transform: translateX(15px); }
 #pipeline-info {
     margin-top: 30px;
     padding: 20px;
-    background-color: #222;
-    border-radius: 4px;
+    background-color: #282828;
+    border-radius: 6px;
     min-height: 150px;
     overflow: hidden;
     transition: max-height 0.3s ease;
@@ -274,20 +302,26 @@ body.light-mode #pipeline-info { background-color: #eee; }
 }
 .status-message.success {
     background-color: #dff0d8;
+    border-left: 4px solid #4CAF50;
     color: #3c763d;
-    border: 1px solid #d6e9c6;
 }
 .status-message.error {
     background-color: #ffebee;
     border-left: 4px solid #f44336;
+    color: darkred;
     padding: 10px;
     margin: 10px 0;
     border-radius: 4px;
 }
 .status-message.info {
     background-color: #d9edf7;
+    border-left: 4px solid #298ee7;
     color: #31708f;
-    border: 1px solid #bce8f1;
+}
+.status-message.running {
+    background-color: #404040;
+    color: #856404;
+    border: 1px solid #696969;
 }
 
 .pipeline-preview {
@@ -589,6 +623,7 @@ button:disabled {
     background-color: #e0e0e0;
     height: 20px;
     margin-top: 10px;
+    margin-bottom: 10px;
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -616,20 +651,26 @@ button:disabled {
   }
  
 #test-artifacts {
-    margin-top: 30px;
+    margin-top: 20px;
     padding: 10px;
     border-top: 1px solid #444;
 }
 
 .job-artifacts {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     padding: 10px;
-    background-color: #292929;
+    background-color: #2e2e2e;
     border-radius: 6px;
     border: 1px solid #444;
 }
-.job-artifacts h4 {
-    margin-bottom: 10px;
+.light-mode .job-artifacts {
+    background-color: #e0e0e0;
+    color: #333;
+    border-color: #bdbdbd;
+}
+
+.job-artifacts h3 {
+    margin-bottom: 20px;
     color: #4CAF50;
 }
 .artifact-summary {
@@ -640,8 +681,13 @@ button:disabled {
     border-radius: 4px;
     color: #eee;
 }
+.artifact-summary h4 {
+    margin-top: 0px;
+    margin-bottom: 10px;
+    color: #4CAF50;
+}
 .light-mode .artifact-summary {
-    background-color: #f5f5f5;
+    background-color: #eee;
     color: #333;
     border-color: #ccc;
 }
@@ -698,7 +744,8 @@ body.light-mode #pipeline-search-section {
 }
 #admin-games-section input {
     margin: 5px;
-    padding: 5px;
+    padding: 8px 12px;
+    width: 200px;
 }
 
 #games-list li {
@@ -746,6 +793,18 @@ body.light-mode pre.pipeline-yml-block {
     padding: 10px;
     border-bottom: 1px solid #ddd;
 }
+#search-form {
+    padding: 20px;
+    margin-bottom: 10px;
+}
 #pipeline-summary {
-    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+#footer {
+    line-height: 1em;
+    margin: 40px auto 20px;
+    padding: 30px 20px;
+    max-width: 350px;
+    text-align: center;
 }
