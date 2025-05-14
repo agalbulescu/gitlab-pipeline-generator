@@ -807,13 +807,14 @@ test_${internalName}:
         mkdir -p reports
         > "$FAILED_FILES"
 
-        # Extract test file paths from classnames and de-duplicate
+        # Extract test file paths from classnames and names and de-duplicate
         if grep -q '<failure' "$RESULTS_XML"; then
-        grep '<testcase' "$RESULTS_XML" | grep '<failure' -B1 | grep '<testcase' \\
-            | sed -n 's/.*classname="\\([^"]*\\)".*/\\1/p' \\
-            | sed 's/\\./\\//g' | sed 's/$/.py/' | sort -u > "$FAILED_FILES"
+          grep '<testcase' "$RESULTS_XML" | grep '<failure' -B1 | grep '<testcase' \\
+            | sed -n 's/.*classname="\\([^"]*\\)".*name="\\([^"]*\\)".*/\\1::\\2/p' \\
+            | sed 's/\\./\\//g' | sed 's/^/\\.\\//' | sed 's/\\(::.*\\)/.py\\1/' \\
+            | sort -u > "$FAILED_FILES"
         else
-        echo "No <failure> tags found in $RESULTS_XML, skipping failure parsing."
+          echo "No <failure> tags found in $RESULTS_XML, skipping failure parsing."
         fi
 
         echo "Contents of failed test files:"
@@ -821,8 +822,8 @@ test_${internalName}:
 
         if [ -s "$FAILED_FILES" ]; then
           echo "Found failed files, rerunning them..."
-          RERUN_ARGS=$(paste -sd ' ' "$FAILED_FILES")
-          pytest -v $RERUN_ARGS --junitxml="$RERUN_XML" || true
+          mapfile -t ARGS < "$FAILED_FILES"
+          pytest -v "\${ARGS[@]}" --junitxml="$RERUN_XML" || true
         else
           echo "No failed test files found to rerun."
         fi

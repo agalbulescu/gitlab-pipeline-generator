@@ -1,5 +1,5 @@
 let currentTheme = '';
-const themeSelectors = '.sub-title, .job-artifacts';
+const themeSelectors = '.sub-title, .job-artifacts, .all-games-actions, .selected-games-actions';
 
 // Function to toggle light/dark mode
 function toggleMode() {
@@ -236,13 +236,13 @@ function toggleSelectedButton(button) {
         payouts: buttons[3],
         ui: buttons[4],
         analytics: buttons[5],
-        backoffice: buttons[6],
-        oss: buttons[7],
-        smapp: buttons[8],
-        desktop: buttons[9],
-        desktop_payouts: buttons[10],
-        desktop_ui: buttons[11],
-        desktop_analytics: buttons[12],
+        desktop: buttons[6],
+        desktop_payouts: buttons[7],
+        desktop_ui: buttons[8],
+        desktop_analytics: buttons[9],
+        backoffice: buttons[10],
+        oss: buttons[11],
+        smapp: buttons[12],
         mobile: buttons[13],
         mobile_payouts: buttons[14],
         mobile_ui: buttons[15],
@@ -565,7 +565,7 @@ function updateSelectedActionsState() {
     selectedButtons.forEach(btn => {
         btn.classList.remove('active');
         btn.disabled = shouldDisable;
-        btn.classList.toggle('disabled', shouldDisable); // for CSS styling if needed
+        btn.classList.toggle('disabled', shouldDisable);
     });
 }
 

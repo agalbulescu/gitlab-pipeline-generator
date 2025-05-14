@@ -52,15 +52,26 @@ h1 {
 }
 .sub-title.light-mode, .sub-title-2.light-mode { background-color: #fff; }
 
+.all-games-actions, .selected-games-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 20px;
+    background-color: #282828;
+    padding: 10px 0px;
+    border-radius: 6px;
+}
+.all-games-actions.light-mode, .selected-games-actions.light-mode { background-color: #f0f0f0; }
+
 /* Buttons container */
 .buttons-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px;
     background-color: #282828;
-    padding: 10px;
-    border-radius: 6px;
+    padding: 10px 0px;
+    border-radius: 6px; */
 }
 
 .button-group {
@@ -72,6 +83,7 @@ h1 {
 .button-group h4 {
     margin: 5px 20px;
     font-weight: 100;
+    width: 130px;
 }
 
 .button-group button {
@@ -87,12 +99,33 @@ h1 {
 }
 .button-group button:hover, 
 .button-group button.active { background-color: #4CAF50; }
-.buttons-container.light-mode { background-color: #fff; }
+.buttons-container.light-mode { background-color: #f0f0f0; }
 .button-group.light-mode button { background-color: #ccc; color: #000; }
 .button-group.light-mode button:hover,
 .button-group.light-mode button.active { background-color: #4CAF50; }
 
 /* .left-buttons { display: flex; gap: 6px; } */
+.clear-action {
+    padding: 0px 20px;
+    margin: auto 0px;
+}
+
+.clear-action button {
+    padding: 45px 10px;
+    background-color: #4b2a2a;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    flex-shrink: 0;
+    border: 1px solid #730808;
+    transition: background-color 0.2s;
+}
+.clear-action button:hover { background-color: #b74242; }
+.clear-action button.active { background-color: #b74242; }
+.clear-action button.light-mode { background-color: #ccc; color: #000; }
+.clear-action button.light-mode:hover { background-color: #b74242; }
+.clear-action button.light-mode.active { background-color: #b74242; color: #000; }
 
 /* Table styles */
 table {
@@ -283,7 +316,7 @@ input:checked + .slider:before { transform: translateX(15px); }
     overflow: hidden;
     transition: max-height 0.3s ease;
 }
-body.light-mode #pipeline-info { background-color: #eee; }
+body.light-mode #pipeline-info { background-color: #f0f0f0; }
 #pipeline-info.expanded { max-height: 1000px; }
 
 #pipeline-status {
@@ -807,4 +840,9 @@ body.light-mode pre.pipeline-yml-block {
     padding: 30px 20px;
     max-width: 350px;
     text-align: center;
+}
+
+#footer a {
+    color: #ffffff;
+    text-decoration: none;
 }
