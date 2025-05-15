@@ -755,20 +755,20 @@ function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
       'regression': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
       'sanity': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m sanity',
       'smoke': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m smoke',
-      'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_payouts',
-      'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_ui',
-      'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -k test_analytics',
-      'backoffice': 'tests/${internalName}/desktop/ -k test_backoffice',
-      'oss': 'tests/${internalName}/desktop/ -k test_oss',
-      'smapp': 'tests/${internalName}/desktop/ -k test_smapp',
+      'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m payouts',
+      'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m ui',
+      'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m analytics',
+      'backoffice': 'tests/${internalName}/desktop/ -m backoffice',
+      'oss': 'tests/${internalName}/desktop/ -m oss',
+      'smapp': 'tests/${internalName}/desktop/ -m smapp',
       'desktop': 'tests/${internalName}/desktop/',
       'mobile': 'tests/${internalName}/mobile/',
-      'desktop_payouts': 'tests/${internalName}/desktop/ -k test_payouts',
-      'mobile_payouts': 'tests/${internalName}/mobile/ -k test_payouts',
-      'desktop_ui': 'tests/${internalName}/desktop/ -k test_ui',
-      'mobile_ui': 'tests/${internalName}/mobile/ -k test_ui',
-      'desktop_analytics': 'tests/${internalName}/desktop/ -k test_analytics',
-      'mobile_analytics': 'tests/${internalName}/mobile/ -k test_analytics'
+      'desktop_payouts': 'tests/${internalName}/desktop/ -m payouts',
+      'mobile_payouts': 'tests/${internalName}/mobile/ -m payouts',
+      'desktop_ui': 'tests/${internalName}/desktop/ -m ui',
+      'mobile_ui': 'tests/${internalName}/mobile/ -m ui',
+      'desktop_analytics': 'tests/${internalName}/desktop/ -m analytics',
+      'mobile_analytics': 'tests/${internalName}/mobile/ -m analytics'
   };
 
   const testJobs = selectedGames.map((game, index) => {
