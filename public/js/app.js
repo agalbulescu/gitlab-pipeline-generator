@@ -1201,11 +1201,11 @@ function renderTestSummaryChart(containerId, summary, jobName) {
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Passed', 'Failed', 'Skipped'],
+            labels: ['Passed', 'Failed', 'Skipped', 'Error'],
             datasets: [{
                 label: `Test Results - ${jobName}`,
-                data: [summary.passed, summary.failed, summary.skipped],
-                backgroundColor: ['#4CAF50', '#f44336', '#FF9800']
+                data: [summary.passed, summary.failed, summary.skipped, summary.error],
+                backgroundColor: ['#4CAF50', '#f44336', '#FF9800', '#FFC107']
             }]
         },
         options: {
@@ -1247,11 +1247,11 @@ function renderSearchSummaryChart(containerId, summary) {
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Passed', 'Failed', 'Skipped'],
+            labels: ['Passed', 'Failed', 'Skipped', 'Error'],
             datasets: [{
                 label: 'Pipeline Summary',
-                data: [summary.passed, summary.failed, summary.skipped],
-                backgroundColor: ['#4CAF50', '#f44336', '#FF9800']
+                data: [summary.passed, summary.failed, summary.skipped, summary.error],
+                backgroundColor: ['#4CAF50', '#f44336', '#FF9800', '#FFC107']
             }]
         },
         options: {
@@ -2084,7 +2084,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }   
        
     function summarizeResults(results) {
-        const summary = { total: 0, passed: 0, failed: 0, skipped: 0 };
+        const summary = { total: 0, passed: 0, failed: 0, skipped: 0, error: 0 };
         results.forEach(r => {
             summary.total++;
             summary[r.status]++;
@@ -2093,19 +2093,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }    
 
     function renderFailures(container, results) {
-        const failedTests = results.filter(t => t.status === 'failed' && t.message);
+        const failedTests = results.filter(t => (t.status === 'failed' || t.status === 'error') && t.message);
         if (!failedTests.length) return;
-    
+
         const failedSection = document.createElement('div');
         failedSection.className = 'failed-tests-section';
         failedSection.style.marginTop = '20px';
-    
+
         const header = document.createElement('strong');
-        header.textContent = '⚠️ Failed tests:';
+        header.textContent = '⚠️ Failed or Error tests:';
         header.style.display = 'block';
         header.style.marginBottom = '6px';
         failedSection.appendChild(header);
-    
+
+        const rerunArgs = [];
+
         failedTests.forEach((test, idx) => {
             const testName = (test.name || test.classname || 'Unnamed Test').slice(0, 80);
 
@@ -2114,15 +2116,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             testRow.style.alignItems = 'center';
             testRow.style.gap = '10px';
             testRow.style.marginTop = '5px';
-    
+
             const nameSpan = document.createElement('span');
             nameSpan.textContent = `- ${testName}`;
             nameSpan.style.flex = '1';
-    
+
             const button = document.createElement('button');
             button.textContent = `Show logs`;
             button.className = 'logs-button';
-    
+
             const pre = document.createElement('pre');
             pre.className = 'log-output';
             pre.textContent = test.message.trim();
@@ -2134,21 +2136,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             pre.style.padding = '10px';
             pre.style.border = '1px solid #444';
             pre.style.marginTop = '5px';
-    
+
             button.addEventListener('click', () => {
                 const isVisible = pre.style.display === 'block';
                 pre.style.display = isVisible ? 'none' : 'block';
                 button.textContent = `${isVisible ? 'Show' : 'Hide'} logs`;
             });
-    
+
             testRow.appendChild(nameSpan);
             testRow.appendChild(button);
             failedSection.appendChild(testRow);
             failedSection.appendChild(pre);
+
+            // Prepare rerun command
+            if (test.classname && test.name) {
+                const path = './' + test.classname.replace(/\./g, '/') + '.py';
+                const testcase = `${path}::${test.name}`;
+                rerunArgs.push(`"${testcase}"`);
+            }
         });
-    
+
+        // Generate full command
+        if (rerunArgs.length > 0) {
+            const env = failedTests[0].environment || 'stage'; // fallback to 'stage' if missing
+            const fullCommand = `pytest -v ${rerunArgs.join(' ')} --environment=${env}`;
+
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = '📋 Copy re-run command for failed tests';
+            copyBtn.className = 'copy-button';
+            copyBtn.style.marginTop = '15px';
+
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(fullCommand)
+                    .then(() => {
+                        copyBtn.textContent = '✅ Copied!';
+                        setTimeout(() => copyBtn.textContent = '📋 Copy re-run command for failed tests', 2000);
+                    })
+                    .catch(err => {
+                        console.error('Clipboard copy failed:', err);
+                        alert('Failed to copy to clipboard');
+                    });
+            });
+
+            failedSection.appendChild(copyBtn);
+        }
+
         container.appendChild(failedSection);
-    }    
+    }
     
     document.getElementById('search-btn').addEventListener('click', async () => {
         const searchId = document.getElementById('search-id').value.trim();
@@ -2263,7 +2297,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             summaryBox.innerHTML = `
                 <h2>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h2>
                 <p>Branch: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
-                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</p>
+                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}, Errors: ${summary.error}</p>
                 <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div>
             `;
             wrapper.appendChild(summaryBox);
@@ -2346,7 +2380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     summaryBox.className = 'artifact-summary';
                     summaryBox.innerHTML = `
                         <h4>Initial Run</h4>
-                        <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                        <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}, Errors: ${summary.error}</div>
                     `;
 
                     const chartContainer = document.createElement('div');
@@ -2370,7 +2404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     summaryBox.className = 'artifact-summary';
                     summaryBox.innerHTML = `
                         <h4>Re-run</h4>
-                        <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}</div>
+                        <div>Total: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}, Errors: ${summary.error}</div>
                     `;
 
                     const chartContainer = document.createElement('div');

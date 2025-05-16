@@ -12,6 +12,8 @@ const { initDatabase } = require('./init-db');
 initDatabase();
 
 const db = require('./db');
+const { env } = require('process');
+const { error } = require('console');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -418,6 +420,7 @@ app.post('/api/generate-pipeline', (req, res) => {
         latestGeneratedPipelineYml = pipelineYml;
         const match = pipelineYml.match(/SELECTED_GAMES:\s*"([^"]+)"/);
         global.lastSelectedGames = match ? match[1] : '';
+        global.lastEnvironment = environment;
 
         res.json({ pipelineYml });
     } catch (error) {
@@ -436,7 +439,6 @@ app.get('/generated-ci/:token.yml', (req, res) => {
 
     const emptyYaml = 
 `empty-pipeline-config:
-  stage: include
   script:
     - echo "This pipeline has not been configured to run any game, please use the Gitlab Pipeline Generator"`;
     const yamlContent = latestGeneratedPipelineYml.trim() || emptyYaml;
@@ -504,10 +506,10 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
         const progress = totalJobs ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
         await db.query(`
-            INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
-        `, [pipeline.id, pipeline.status, pipeline.ref, pipeline.sha, pipeline.created_at, pipeline.updated_at]);
+            INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at, environment)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, environment = EXCLUDED.environment
+        `, [pipeline.id, pipeline.status, pipeline.ref, pipeline.sha, pipeline.created_at, pipeline.updated_at, global.lastEnvironment || null]);
 
         for (const job of jobs) {
             if (!job.name.startsWith('test_')) continue;
@@ -575,18 +577,22 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
 
                 for (const tc of testcases) {
 
-                    const status = tc.failure ? 'failed' : tc.skipped ? 'skipped' : 'passed';
+                    const status = tc.error ? 'error' : tc.failure ? 'failed' : tc.skipped ? 'skipped' : 'passed';
+                    const error = tc.error;
                     const failure = tc.failure;
                     let message = null;
-                    if (typeof failure === 'object') {
-                        message = failure['#text'] || failure.message || JSON.stringify(failure);
-                    } else if (typeof failure === 'string') {
-                        message = failure;
+
+                    if (typeof failure === 'object' || typeof error === 'object') {
+                        const obj = failure || error;
+                        message = obj['#text'] || obj.message || JSON.stringify(obj);
+                    } else if (typeof failure === 'string' || typeof error === 'string') {
+                        message = failure || error;
                     }
 
                     const name = tc.name || null;
                     const classname = tc.classname || null;
                     const time = tc.time ? parseFloat(tc.time) : 0;
+                    const environment = global.lastEnvironment || null;
                     
                     const record = {
                         name,
@@ -594,14 +600,15 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
                         status,
                         time,
                         message,
-                        run_type: runType
+                        run_type: runType,
+                        environment
                     };
                     targetArray.push(record);
 
                     await db.query(`
-                        INSERT INTO test_results (job_id, name, classname, status, time, message, run_type)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    `, [jobId, record.name, record.classname, record.status, record.time, record.message, record.run_type]);
+                        INSERT INTO test_results (job_id, name, classname, status, time, message, run_type, environment)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    `, [jobId, record.name, record.classname, record.status, record.time, record.message, record.run_type, global.lastEnvironment || null]);
                 }
             }
         }
@@ -623,7 +630,7 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
 app.get('/api/pipeline-summary/:id', async (req, res) => {
     const { id } = req.params;
     const jobSummaries = [];
-    let pipelineSummary = { total: 0, passed: 0, failed: 0, skipped: 0 };
+    let pipelineSummary = { total: 0, passed: 0, failed: 0, skipped: 0, error: 0 };
 
     try {
         let result = await db.query('SELECT * FROM pipelines WHERE id = $1', [id]);
@@ -651,25 +658,28 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
                 [job.id]
             );
 
-            let total = 0, passed = 0, failed = 0, skipped = 0;
+            let total = 0, passed = 0, failed = 0, skipped = 0, error = 0;
             testResult.rows.forEach(r => {
                 total += parseInt(r.count);
                 if (r.status === 'passed') passed += parseInt(r.count);
                 if (r.status === 'failed') failed += parseInt(r.count);
                 if (r.status === 'skipped') skipped += parseInt(r.count);
+                if (r.status === 'error') error += parseInt(r.count);
             });
 
             pipelineSummary.total += total;
             pipelineSummary.passed += passed;
             pipelineSummary.failed += failed;
             pipelineSummary.skipped += skipped;
+            pipelineSummary.error += error;
 
             jobSummaries.push({
                 ...job,
                 total_tests: total,
                 passed_tests: passed,
                 failed_tests: failed,
-                skipped_tests: skipped
+                skipped_tests: skipped,
+                error_tests: error
             });
         }
 
@@ -678,7 +688,8 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
                 pipeline_id: pipeline.id,
                 status: pipeline.status,
                 ref: pipeline.ref,
-                created_at: pipeline.created_at
+                created_at: pipeline.created_at,
+                environment: pipeline.environment
             },
             jobs: jobSummaries,
             summary: pipelineSummary
@@ -695,7 +706,7 @@ app.get('/api/job-results/:jobId', async (req, res) => {
 
     try {
         const result = await db.query(
-            `SELECT name, classname, status, time, message, run_type
+            `SELECT name, classname, status, time, message, run_type, environment
              FROM test_results
              WHERE job_id = $1`,
             [jobId]
@@ -711,7 +722,8 @@ app.get('/api/job-results/:jobId', async (req, res) => {
                 status: row.status,
                 time: row.time,
                 message: row.message,
-                run_type: row.run_type
+                run_type: row.run_type,
+                environment: row.environment
             };
             if (row.run_type === 'rerun') rerunResults.push(record);
             else initialResults.push(record);
@@ -773,7 +785,7 @@ function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
     const internalName = gameName.toLowerCase().replace(/\s+/g, '_');
     const uniqueSuites = [...new Set(suites)];
     const commands = uniqueSuites.map(suite =>
-      `pytest ${suiteMap[suite].replace(/\$\{internalName\}/g, internalName)} --junitxml=reports/results_${internalName}.xml || true`
+      `pytest ${suiteMap[suite].replace(/\$\{internalName\}/g, internalName)} --junitxml=reports/results_${internalName}.xml || true --environment=${environment}`
     );
   
     const groupId = (index % maxConcurrentGroups) + 1;
@@ -791,6 +803,7 @@ test_${internalName}:
   script:
     - |
       echo "Running ${gameName} tests"
+      echo "Run commands: ${commands.join('\n')}"
       ${commands.join('\n')}
 
       echo "Checking for failed tests to re-run for ${internalName}..."
@@ -805,8 +818,8 @@ test_${internalName}:
         > "$FAILED_FILES"
 
         # Extract test file paths from classnames and names and de-duplicate
-        if grep -q '<failure' "$RESULTS_XML"; then
-          grep '<testcase' "$RESULTS_XML" | grep '<failure' -B1 | grep '<testcase' \\
+        if grep -q '<failure\|<error' "$RESULTS_XML"; then
+          grep '<testcase' "$RESULTS_XML" | grep '<failure\|<error' -B1 | grep '<testcase' \\
             | sed -n 's/.*classname="\\([^"]*\\)".*name="\\([^"]*\\)".*/\\1::\\2/p' \\
             | sed 's/\\./\\//g' | sed 's/^/\\.\\//' | sed 's/\\(::.*\\)/.py\\1/' \\
             | sort -u > "$FAILED_FILES"
@@ -820,7 +833,8 @@ test_${internalName}:
         if [ -s "$FAILED_FILES" ]; then
           echo "Found failed files, rerunning them..."
           mapfile -t ARGS < "$FAILED_FILES"
-          pytest -v "\${ARGS[@]}" --junitxml="$RERUN_XML" || true
+          echo "Rerun command: pytest -v \${ARGS[@]} --junitxml=$RERUN_XML || true --environment=$ENVIRONMENT"
+          pytest -v "\${ARGS[@]}" --junitxml="$RERUN_XML" || true --environment=$ENVIRONMENT
         else
           echo "No failed test files found to rerun."
         fi
@@ -861,7 +875,7 @@ notify_pipeline_start:
     - echo $(date +%s) > start_time.txt
     - |
       curl -X POST -H 'Content-type: application/json' --data '{
-        "text": "*🚀 Pipeline Started 🚀*\\n*Project:* '$CI_PROJECT_NAME'\\n*Branch:* <'$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME'|'$CI_COMMIT_REF_NAME'>\\n*Commit:* <'$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA'|'$CI_COMMIT_SHORT_SHA'>\\n*Pipeline URL:* <'$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID'|'$CI_PIPELINE_ID'>",
+        "text": "*🚀 Pipeline Started 🚀*\\n*Project:* '$CI_PROJECT_NAME'\\n*Branch:* <'$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME'|'$CI_COMMIT_REF_NAME'>\\n*Commit:* <'$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA'|'$CI_COMMIT_SHORT_SHA'>\\n*Environment:* '$ENVIRONMENT'\\n*Pipeline URL:* <'$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID'|'$CI_PIPELINE_ID'>",
         "channel": "'$SLACK_CHANNEL'",
         "username": "gitlab-ci",
         "icon_emoji": ":rocket:"
@@ -891,7 +905,7 @@ notify_pipeline_end:
         STATUS_TEXT="❌ *Pipeline Failed* ❌"
       fi
     - |
-      MESSAGE="*🏁 Pipeline Finished 🏁*\\n$STATUS_TEXT\\n*Project:* $CI_PROJECT_NAME\\n*Branch:* <$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME|$CI_COMMIT_REF_NAME>\\n*Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>\\n*Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|$CI_PIPELINE_ID>\\n*Duration:* $DURATION_FMT\\n*Results:* <https://pypipe.456842.xyz/results/$CI_PIPELINE_ID|View>"
+      MESSAGE="*🏁 Pipeline Finished 🏁*\\n$STATUS_TEXT\\n*Project:* $CI_PROJECT_NAME\\n*Branch:* <$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME|$CI_COMMIT_REF_NAME>\\n*Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>\\n*Environment:* $ENVIRONMENT\\n*Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|$CI_PIPELINE_ID>\\n*Duration:* $DURATION_FMT\\n*Results:* <https://pypipe.456842.xyz/results/$CI_PIPELINE_ID|View>"
     - |
       PAYLOAD=$(printf '{"text":"%s","channel":"%s","username":"gitlab-ci","icon_emoji":":gitlab:"}' "$MESSAGE" "$SLACK_CHANNEL")
       curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"

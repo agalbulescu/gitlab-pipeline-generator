@@ -27,7 +27,8 @@ async function initDatabase() {
                 ref TEXT,
                 sha TEXT,
                 created_at TIMESTAMP,
-                updated_at TIMESTAMP
+                updated_at TIMESTAMP,
+                environment TEXT
             );
         `);
         // Create jobs table
@@ -53,7 +54,8 @@ async function initDatabase() {
                 status TEXT,
                 time FLOAT,
                 message TEXT,
-                run_type TEXT
+                run_type TEXT,
+                environment TEXT
             );
         `);
         console.log('✅ Database fully ensured.');
