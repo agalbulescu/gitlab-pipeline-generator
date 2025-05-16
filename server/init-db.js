@@ -1,4 +1,4 @@
-const { pool } = require('./db'); // Adjust path if necessary
+const { pool } = require('./db');
 
 async function initDatabase() {
     try {
@@ -62,6 +62,7 @@ async function initDatabase() {
         process.exit(1);
     }
 
+    // Insert default games if they don't exist
     const defaultGames = [
         { displayName: 'Andar Bahar', internalName: 'andar_bahar' },
         { displayName: 'Automated Roulette', internalName: 'automated_roulette' },

@@ -455,7 +455,7 @@ function updateSelectedTableRows(buttons) {
 
         if (activeLabels.length === 0) {
             runSwitch.checked = false;
-            toggleRowSwitches(runSwitch); // to disable children
+            toggleRowSwitches(runSwitch);
             return;
         }
 
@@ -547,7 +547,6 @@ function updateSelectedTableRows(buttons) {
 function clearSelectedButtons() {
     const buttons = document.querySelectorAll('.selected-buttons-container button');
     buttons.forEach(button => button.classList.remove('active'));
-    // toggleSelectedButton({ textContent: 'CLEAR' });
     updateSelectedTableRows(buttons);
 }
 
@@ -1104,7 +1103,7 @@ function updateOutput() {
             const smokeSwitch = row.querySelector('.smoke-switch');
             const selectedColumns = [];
 
-            // Check for regression (was all)
+            // Check for regression
             if (regressionSwitch && regressionSwitch.checked) {
                 selectedColumns.push('regression');
             }
@@ -1284,8 +1283,6 @@ function renderSearchSummaryChart(containerId, summary) {
 
 async function triggerPipeline(branch) {
 
-    // console.log('Triggering on branch:', branch);
-
     try {
         const response = await fetch('/api/trigger-pipeline', {
             method: 'POST',
@@ -1324,7 +1321,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const table = document.getElementById('game-table');
     const thead = table.querySelector('thead');
 
-    // Add sticky class
     thead.classList.add('sticky-header');
 
     const observer = new IntersectionObserver(
@@ -1519,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             newUName.value = '';
             newUPassword.value = '';
 
-            loadUserList(); // refresh list
+            loadUserList();
         } catch (err) {
             adminFeedback.textContent = `❌ ${err.message}`;
             adminFeedback.style.color = 'red';
@@ -2261,7 +2257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             wrapper.id = 'test-artifacts';
             artifactsSection.appendChild(wrapper);
 
-            // === PIPELINE SUMMARY ===
+            // PIPELINE SUMMARY
             const summaryBox = document.createElement('div');
             summaryBox.id = 'pipeline-summary';
             summaryBox.innerHTML = `
@@ -2276,7 +2272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderSearchSummaryChart('search-summary-chart', summary);
             }, 100);
 
-            // === JOBS HEADER ===
+            // JOBS HEADER
             const testJobsBox = document.createElement('div');
             testJobsBox.className = 'test-jobs-summary';
             testJobsBox.innerHTML = `<h2>Test Jobs</h2>`;
@@ -2308,7 +2304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     formattedSuites = ` (${suiteList.join(', ')})`;
                 }
 
-                // === COLLAPSIBLE HEADER ===
+                // COLLAPSIBLE HEADER
                 const hasFailures = [...(initial_results || []), ...(rerun_results || [])].some(t => t.status === 'failed');
                 const header = document.createElement('div');
                 header.className = 'job-header';
@@ -2343,7 +2339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 box.appendChild(contentWrapper);
                 wrapper.appendChild(box);
 
-                // === INITIAL RESULTS ===
+                // INITIAL RESULTS
                 if (initial_results?.length) {
                     const summary = summarizeResults(initial_results);
                     const summaryBox = document.createElement('div');
@@ -2367,7 +2363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }, 100));
                 }
 
-                // === RERUN RESULTS ===
+                // RE-RUN RESULTS
                 if (rerun_results?.length) {
                     const summary = summarizeResults(rerun_results);
                     const summaryBox = document.createElement('div');
