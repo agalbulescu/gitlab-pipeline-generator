@@ -818,8 +818,8 @@ test_${internalName}:
         > "$FAILED_FILES"
 
         # Extract test file paths from classnames and names and de-duplicate
-        if grep -q '<failure\|<error' "$RESULTS_XML"; then
-          grep '<testcase' "$RESULTS_XML" | grep '<failure\|<error' -B1 | grep '<testcase' \\
+        if grep -q '<failure\\|<error' "$RESULTS_XML"; then
+          grep '<testcase' "$RESULTS_XML" | grep '<failure\\|<error' -B1 | grep '<testcase' \\
             | sed -n 's/.*classname="\\([^"]*\\)".*name="\\([^"]*\\)".*/\\1::\\2/p' \\
             | sed 's/\\./\\//g' | sed 's/^/\\.\\//' | sed 's/\\(::.*\\)/.py\\1/' \\
             | sort -u > "$FAILED_FILES"
