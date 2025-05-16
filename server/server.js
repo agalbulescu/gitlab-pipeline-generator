@@ -435,11 +435,8 @@ app.get('/generated-ci/:token.yml', (req, res) => {
     }
 
     const emptyYaml = 
-`stages:
-  - message
-    
-print-message:
-  stage: message
+`empty-pipeline-config:
+  stage: include
   script:
     - echo "This pipeline has not been configured to run any game, please use the Gitlab Pipeline Generator"`;
     const yamlContent = latestGeneratedPipelineYml.trim() || emptyYaml;
