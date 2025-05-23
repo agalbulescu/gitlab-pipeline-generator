@@ -11,6 +11,7 @@ async function initDatabase() {
                 name TEXT NOT NULL
             );
         `);
+
         // Create games table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS games (
@@ -19,6 +20,26 @@ async function initDatabase() {
                 internal_name VARCHAR(255) NOT NULL UNIQUE
             )
         `);
+
+        // Create environments table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS environments (
+                id SERIAL PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                internal_name TEXT UNIQUE NOT NULL
+            );
+        `);
+
+        // Create browser_profiles table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS browser_profiles (
+                id SERIAL PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                internal_name TEXT UNIQUE NOT NULL,
+                type TEXT NOT NULL CHECK (type IN ('desktop', 'mobile'))
+            );
+        `);
+
         // Create pipelines table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS pipelines (
@@ -28,9 +49,11 @@ async function initDatabase() {
                 sha TEXT,
                 created_at TIMESTAMP,
                 updated_at TIMESTAMP,
+                finished_at TIMESTAMP,
                 environment TEXT
             );
         `);
+
         // Create jobs table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS jobs (
@@ -44,6 +67,7 @@ async function initDatabase() {
                 suites TEXT
             );
         `);
+
         // Create test results table
         await pool.query(`
             CREATE TABLE IF NOT EXISTS test_results (
@@ -55,9 +79,11 @@ async function initDatabase() {
                 time FLOAT,
                 message TEXT,
                 run_type TEXT,
-                environment TEXT
+                environment TEXT,
+                browser_profile_name TEXT
             );
         `);
+
         console.log('✅ Database fully ensured.');
     } catch (err) {
         console.error('❌ Error initializing database:', err);
@@ -103,6 +129,43 @@ async function initDatabase() {
             [game.displayName, game.internalName]
         );
     }
+
+    // Insert default environments if they don't exist
+    const defaultEnvironments = [
+        { displayName: 'Stage', internalName: 'stage' },
+        { displayName: 'Pre-Prod', internalName: 'preprod' },
+        { displayName: 'Certification', internalName: 'certification' },
+        { displayName: 'QA01', internalName: 'qa01' },
+        { displayName: 'QA02', internalName: 'qa02' },
+        { displayName: 'QA03', internalName: 'qa03' },
+        { displayName: 'QA04', internalName: 'qa04' },
+        { displayName: 'QA05', internalName: 'qa05' },
+        { displayName: 'QA06', internalName: 'qa06' },
+        { displayName: 'QA07', internalName: 'qa07' },
+        { displayName: 'QA08', internalName: 'qa08' },
+        { displayName: 'QA09', internalName: 'qa09' }
+    ];
+    for (const env of defaultEnvironments) {
+        await pool.query(
+            'INSERT INTO environments (display_name, internal_name) VALUES ($1, $2) ON CONFLICT (internal_name) DO NOTHING',
+            [env.displayName, env.internalName]
+        );
+    }
+
+    // Insert default browser profiles if they don't exist
+    const defaultBrowserProfiles = [
+        { displayName: 'Chrome - 1920 x 1080', internalName: 'chrome1920x1080', type: 'desktop' },
+        { displayName: 'Chrome - 1366 x 768', internalName: 'chrome1366x768', type: 'desktop' },
+        { displayName: 'Firefox - 1920 x 1080', internalName: 'firefox1920x1080', type: 'desktop' },
+        { displayName: 'Samsung Galaxy A51/71', internalName: 'chrome_m_galaxy_a51_71', type: 'mobile' }
+    ];
+    for (const profile of defaultBrowserProfiles) {
+        await pool.query(
+            'INSERT INTO browser_profiles (display_name, internal_name, type) VALUES ($1, $2, $3) ON CONFLICT (internal_name) DO NOTHING',
+            [profile.displayName, profile.internalName, profile.type]
+        );
+    }
+
 }
 
 module.exports = { initDatabase };

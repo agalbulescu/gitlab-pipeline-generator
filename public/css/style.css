@@ -126,7 +126,7 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px !important;
+    margin-bottom: 20px;
     background-color: #1f1f1f;
     color: #fff;
 }
@@ -197,10 +197,8 @@ textarea {
     cursor: pointer;
     border-radius: 8px;
     width: 120px;
-    height: 40px;
+    height: 30px;
     flex-shrink: 0;
-    margin-top: 10px;
-    margin-bottom: 10px;
 }
 
 /* Edit games section */
@@ -349,6 +347,9 @@ body.light-mode #pipeline-info { background-color: #f0f0f0; }
     color: #856404;
     border: 1px solid #696969;
 }
+.status-message.running a {
+    color: #70bcf2;
+}
 
 .pipeline-preview {
     margin-top: 15px;
@@ -419,7 +420,7 @@ input, select, button {
     padding: 8px 12px;
     border: 1px solid #444;
     border-radius: 4px;
-    background-color: #333;
+    background-color: #1f1f1f;
     color: #fff;
 }
 .light-mode input, 
@@ -670,9 +671,19 @@ button:disabled {
 .dark-mode .progress-bar { background-color: #333; }
 
 #env-section {
-    margin: 0px 20px 20px;
+    margin: 0px 20px 10px;
     max-width: 600px;
   }
+
+.desktop-browser-selection {
+    margin: 0px 20px 10px;
+    max-width: 600px;
+}
+
+.mobile-browser-selection {
+    margin: 0px 20px 20px;
+    max-width: 600px;
+}
  
 #test-artifacts {
     margin-top: 20px;
@@ -757,34 +768,78 @@ body.light-mode #pipeline-search-section {
     margin-top: 20px;
 }
 
-#user-list button {
+#add-user-form,
+#add-env-form,
+#add-browser-form,
+#add-game-form {
+    background-color: #333;
+    padding: 5px 20px 20px;
+    border-radius: 8px;
+}
+
+#user-list button,
+#games-list button,
+#env-list button,
+#browser-list button {
     background: none;
     border: none;
     color: red;
-    font-size: 1.2em;
 }
-#user-list button:hover {
+#user-list button:hover,
+#games-list button:hover,
+#env-list button:hover,
+#browser-list button:hover {
     transform: scale(1.2);
 }
-#admin-games-section input {
+#admin-section input {
     margin: 5px;
     padding: 8px 12px;
     width: 200px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background-color: #1f1f1f;
+}
+.admin-table th, .admin-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #444;
+}
+.admin-table th {
+    background-color: #333;
+}
+.admin-table td {
+    background-color: #222;
+}
+body.light-mode .admin-table {
+    background-color: #fff;
+}
+body.light-mode .admin-table th {
+    background-color: #ddd;
+    color: #000;
+}
+body.light-mode .admin-table td {
+    background-color: #eee;
+    color: #000;
+}
+
+#manage-user-section,
+#manage-env-section,
+#manage-browser-section,
+#manage-game-section {
+    background-color: #282828;
+    padding: 5px 20px;
+    border-radius: 8px;
+    margin-bottom: 80px;
 }
 
 #games-list li {
     margin: 5px 0;
 }
 
-#games-list button {
-    margin-left: 10px;
-    background-color: #f44336;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-}
 pre.pipeline-yml-block {
     max-height: 300px;
     overflow-y: auto;

@@ -14,6 +14,7 @@ initDatabase();
 const db = require('./db');
 const { env } = require('process');
 const { error } = require('console');
+const { finished } = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -183,6 +184,44 @@ app.delete('/api/games/:id', async (req, res) => {
         console.error('Delete game error:', err);
         res.status(500).json({ error: 'Failed to delete game' });
     }
+});
+
+// Environments
+app.get('/api/environments', async (req, res) => {
+    const result = await db.query('SELECT * FROM environments ORDER BY display_name');
+    res.json(result.rows);
+});
+app.post('/api/environments', async (req, res) => {
+    if (!req.session.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    const { display_name, internal_name } = req.body;
+    await db.query(
+        'INSERT INTO environments (display_name, internal_name) VALUES ($1, $2) ON CONFLICT (internal_name) DO NOTHING',
+        [display_name, internal_name]
+    );
+    res.json({ success: true });
+});
+app.delete('/api/environments/:id', async (req, res) => {
+    await db.query('DELETE FROM environments WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
+});
+
+// Browser Profiles
+app.get('/api/browser-profiles', async (req, res) => {
+    const result = await db.query('SELECT * FROM browser_profiles ORDER BY display_name');
+    res.json(result.rows);
+});
+app.post('/api/browser-profiles', async (req, res) => {
+    if (!req.session.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    const { display_name, internal_name, type } = req.body;
+    await db.query(
+        'INSERT INTO browser_profiles (display_name, internal_name, type) VALUES ($1, $2, $3) ON CONFLICT (internal_name) DO NOTHING',
+        [display_name, internal_name, type]
+    );
+    res.json({ success: true });
+});
+app.delete('/api/browser-profiles/:id', async (req, res) => {
+    await db.query('DELETE FROM browser_profiles WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
 });
 
 // Login and session management
@@ -409,18 +448,20 @@ app.get('/api/branches', async (req, res) => {
 
 // Generate pipeline YAML
 app.post('/api/generate-pipeline', (req, res) => {
-    const { selectedGames, environment } = req.body;
+    const { selectedGames, environment, desktopProfile, mobileProfile } = req.body;
     
     if (!selectedGames || !Array.isArray(selectedGames)) {
         return res.status(400).json({ error: 'Invalid game selection' });
     }
     
     try {
-        const pipelineYml = generatePipelineYml(selectedGames, environment);
+        const pipelineYml = generatePipelineYml(selectedGames, environment, desktopProfile, mobileProfile);
         latestGeneratedPipelineYml = pipelineYml;
         const match = pipelineYml.match(/SELECTED_GAMES:\s*"([^"]+)"/);
         global.lastSelectedGames = match ? match[1] : '';
         global.lastEnvironment = environment;
+        global.lastDesktopProfile = desktopProfile;
+        global.lastMobileProfile = mobileProfile;
 
         res.json({ pipelineYml });
     } catch (error) {
@@ -506,15 +547,24 @@ app.get('/api/pipeline-status/:pipelineId', async (req, res) => {
         const progress = totalJobs ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
         await db.query(`
-            INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at, environment)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, environment = EXCLUDED.environment
-        `, [pipeline.id, pipeline.status, pipeline.ref, pipeline.sha, pipeline.created_at, pipeline.updated_at, global.lastEnvironment || null]);
+            INSERT INTO pipelines (id, status, ref, sha, created_at, updated_at, finished_at, environment)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, finished_at = EXCLUDED.finished_at, environment = EXCLUDED.environment
+        `, [pipeline.id, pipeline.status, pipeline.ref, pipeline.sha, pipeline.created_at, pipeline.updated_at, pipeline.finished_at, global.lastEnvironment || null]);
 
         for (const job of jobs) {
             if (!job.name.startsWith('test_')) continue;
 
             const suites = selectedGameSuites[job.name] || [];
+
+            if (!global.jobIdToProfile) global.jobIdToProfile = {};
+
+            const name = job.name || '';
+            if (name.includes('_desktop')) {
+            global.jobIdToProfile[job.id] = global.lastDesktopProfile || 'chrome1920x1080';
+            } else if (name.includes('_mobile')) {
+            global.jobIdToProfile[job.id] = global.lastMobileProfile || 'chrome_m_galaxy_a51_71';
+            }
 
             await db.query(`
                 INSERT INTO jobs (id, pipeline_id, name, status, stage, started_at, finished_at, suites)
@@ -593,6 +643,7 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
                     const classname = tc.classname || null;
                     const time = tc.time ? parseFloat(tc.time) : 0;
                     const environment = global.lastEnvironment || null;
+                    const browser_profile_name = global.jobIdToProfile?.[parseInt(jobId)] || null;
                     
                     const record = {
                         name,
@@ -601,14 +652,15 @@ app.get('/api/pipeline-artifacts/:jobId', async (req, res) => {
                         time,
                         message,
                         run_type: runType,
-                        environment
+                        environment,
+                        browser_profile_name
                     };
                     targetArray.push(record);
 
                     await db.query(`
-                        INSERT INTO test_results (job_id, name, classname, status, time, message, run_type, environment)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                    `, [jobId, record.name, record.classname, record.status, record.time, record.message, record.run_type, global.lastEnvironment || null]);
+                        INSERT INTO test_results (job_id, name, classname, status, time, message, run_type, environment, browser_profile_name)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    `, [jobId, record.name, record.classname, record.status, record.time, record.message, record.run_type, global.lastEnvironment || null, record.browser_profile_name]);
                 }
             }
         }
@@ -649,6 +701,8 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
             jobsResult = await db.query('SELECT * FROM jobs WHERE pipeline_id = $1', [pipeline.id]);
         }
 
+        let pipelineDuration = formatDuration(pipeline.created_at, pipeline.finished_at);
+
         for (const job of jobsResult.rows) {
             const testResult = await db.query(
                 `SELECT status, COUNT(*) AS count
@@ -673,13 +727,16 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
             pipelineSummary.skipped += skipped;
             pipelineSummary.error += error;
 
+            let jobDuration = formatDuration(job.started_at, job.finished_at);
+
             jobSummaries.push({
                 ...job,
                 total_tests: total,
                 passed_tests: passed,
                 failed_tests: failed,
                 skipped_tests: skipped,
-                error_tests: error
+                error_tests: error,
+                duration: jobDuration || 'N/A'
             });
         }
 
@@ -689,6 +746,8 @@ app.get('/api/pipeline-summary/:id', async (req, res) => {
                 status: pipeline.status,
                 ref: pipeline.ref,
                 created_at: pipeline.created_at,
+                finished_at: pipeline.finished_at,
+                duration: pipelineDuration,
                 environment: pipeline.environment
             },
             jobs: jobSummaries,
@@ -706,7 +765,7 @@ app.get('/api/job-results/:jobId', async (req, res) => {
 
     try {
         const result = await db.query(
-            `SELECT name, classname, status, time, message, run_type, environment
+            `SELECT name, classname, status, time, message, run_type, environment, browser_profile_name
              FROM test_results
              WHERE job_id = $1`,
             [jobId]
@@ -723,7 +782,8 @@ app.get('/api/job-results/:jobId', async (req, res) => {
                 time: row.time,
                 message: row.message,
                 run_type: row.run_type,
-                environment: row.environment
+                environment: row.environment,
+                browser_profile_name: row.browser_profile_name
             };
             if (row.run_type === 'rerun') rerunResults.push(record);
             else initialResults.push(record);
@@ -749,97 +809,93 @@ function parseSelectedGames(value) {
     const map = {};
     value.split(',').forEach(entry => {
         const [game, ...suites] = entry.split(':');
-        if (game) {
-            map[`test_${game}`] = suites.map(s => s.trim());
-        }
+        if (!game) return;
+
+        const cleanedSuites = suites.map(s => s.trim());
+        const internalName = game.toLowerCase().replace(/\s+/g, '_');
+
+        map[`test_${internalName}_desktop`] = cleanedSuites;
+        map[`test_${internalName}_mobile`] = cleanedSuites;
     });
     return map;
 }
 
+function formatDuration(started, finished) {
+    const start = new Date(started);
+    const end = new Date(finished);
+    const diff = end - start;
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    return `${mins}m ${secs}s`;
+}
+
 // Generate pipeline YAML
-function generatePipelineYml(selectedGames, environment = 'UNKNOWN_ENV') {
-  const maxConcurrentGroups = 5; // CONFIGURABLE
+function generatePipelineYml(selectedGames, environment = 'stage', desktopProfile = 'chrome1920x1080', mobileProfile = 'chrome_m_galaxy_a51_71') {
+  const maxConcurrentGroups = 10;
 
   const suiteMap = {
-      'regression': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/',
-      'sanity': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m sanity',
-      'smoke': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m smoke',
-      'payouts': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m payouts',
-      'ui': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m ui',
-      'analytics': 'tests/${internalName}/desktop/ tests/${internalName}/mobile/ -m analytics',
-      'backoffice': 'tests/${internalName}/desktop/ -m backoffice',
-      'oss': 'tests/${internalName}/desktop/ -m oss',
-      'smapp': 'tests/${internalName}/desktop/ -m smapp',
-      'desktop': 'tests/${internalName}/desktop/',
-      'mobile': 'tests/${internalName}/mobile/',
-      'desktop_payouts': 'tests/${internalName}/desktop/ -m payouts',
-      'mobile_payouts': 'tests/${internalName}/mobile/ -m payouts',
-      'desktop_ui': 'tests/${internalName}/desktop/ -m ui',
-      'mobile_ui': 'tests/${internalName}/mobile/ -m ui',
-      'desktop_analytics': 'tests/${internalName}/desktop/ -m analytics',
-      'mobile_analytics': 'tests/${internalName}/mobile/ -m analytics'
+    regression: { desktop: '', mobile: '' },
+    sanity: { desktop: ' -m sanity', mobile: ' -m sanity' },
+    smoke: { desktop: ' -m smoke', mobile: ' -m smoke' },
+    payouts: { desktop: ' -m payouts', mobile: ' -m payouts' },
+    ui: { desktop: ' -m ui', mobile: ' -m ui' },
+    analytics: { desktop: ' -m analytics', mobile: ' -m analytics' },
+    backoffice: { desktop: ' -m backoffice' },
+    oss: { desktop: ' -m oss' },
+    smapp: { desktop: ' -m smapp' },
+    desktop: { desktop: '' },
+    mobile: { mobile: '' },
+    desktop_payouts: { desktop: ' -m payouts' },
+    mobile_payouts: { mobile: ' -m payouts' },
+    desktop_ui: { desktop: ' -m ui' },
+    mobile_ui: { mobile: ' -m ui' },
+    desktop_analytics: { desktop: ' -m analytics' },
+    mobile_analytics: { mobile: ' -m analytics' }
   };
 
-  const testJobs = selectedGames.map((game, index) => {
-    const [gameName, ...suites] = game.split(':');
-    const internalName = gameName.toLowerCase().replace(/\s+/g, '_');
-    const uniqueSuites = [...new Set(suites)];
-    const commands = uniqueSuites.map(suite =>
-      `pytest ${suiteMap[suite].replace(/\$\{internalName\}/g, internalName)} --junitxml=reports/results_${internalName}.xml || true --environment=${environment}`
-    );
-  
-    const groupId = (index % maxConcurrentGroups) + 1;
-  
+  const generateJob = (internalName, gameName, platform, markers, groupId) => {
+    const browserProfile = platform === 'desktop' ? desktopProfile : mobileProfile;
+    const markerSuffix = markers ? ` ${markers}` : '';
+    const testPath = `tests/${internalName}/${platform}/`;
+    const resultsFile = `reports/results_${internalName}_${platform}.xml`;
+    const rerunFile = `reports/rerun_${internalName}_${platform}.xml`;
+    const failedFile = `reports/failed_files_${internalName}_${platform}.txt`;
+
     return `
-test_${internalName}:
+test_${internalName}_${platform}:
   id_tokens:
     GITLAB_OIDC_TOKEN:
       aud: ${GITLAB_CONFIG.BASE_URL}
   stage: test
   tags:
     - jenkins-huge
-  image: escuxezg0/pypipe-debian:latest
+  image: public.ecr.aws/d5x2n6w4/ezugi:debian-bookworm-slim136.0
   resource_group: group_${groupId}
   script:
     - |
-      echo "Running ${gameName} tests"
-      echo "Run commands: ${commands.join('\n')}"
-      ${commands.join('\n')}
+      echo "Running ${gameName} ${platform} tests"
+      echo "Running command: pytest ${testPath}${markers} --junitxml=${resultsFile} --environment=${environment} --browser_profile_name=${browserProfile}"
+      pytest ${testPath}${markers} --junitxml=${resultsFile} || true --environment=${environment} --browser_profile_name=${browserProfile}
 
-      echo "Checking for failed tests to re-run for ${internalName}..."
+      echo "Checking for failed tests to re-run for ${internalName}_${platform}..."
 
-      FAILED_FILES=reports/failed_files_${internalName}.txt
-      RERUN_XML=reports/rerun_${internalName}.xml
-      RESULTS_XML=reports/results_${internalName}.xml
-
-      if [ -f "$RESULTS_XML" ]; then
-        echo "Parsing failed test files from $RESULTS_XML..."
+      if [ -f "${resultsFile}" ]; then
         mkdir -p reports
-        > "$FAILED_FILES"
+        > "${failedFile}"
 
-        # Extract test file paths from classnames and names and de-duplicate
-        if grep -q '<failure\\|<error' "$RESULTS_XML"; then
-          grep '<testcase' "$RESULTS_XML" | grep '<failure\\|<error' -B1 | grep '<testcase' \\
+        if grep -q '<failure\\|<error' "${resultsFile}"; then
+          grep '<testcase' "${resultsFile}" | grep '<failure\\|<error' -B1 | grep '<testcase' \\
             | sed -n 's/.*classname="\\([^"]*\\)".*name="\\([^"]*\\)".*/\\1::\\2/p' \\
             | sed 's/\\./\\//g' | sed 's/^/\\.\\//' | sed 's/\\(::.*\\)/.py\\1/' \\
-            | sort -u > "$FAILED_FILES"
-        else
-          echo "No <failure> tags found in $RESULTS_XML, skipping failure parsing."
+            | sort -u > "${failedFile}"
         fi
 
-        echo "Contents of failed test files:"
-        cat "$FAILED_FILES"
-
-        if [ -s "$FAILED_FILES" ]; then
-          echo "Found failed files, rerunning them..."
-          mapfile -t ARGS < "$FAILED_FILES"
-          echo "Rerun command: pytest -v \${ARGS[@]} --junitxml=$RERUN_XML || true --environment=$ENVIRONMENT"
-          pytest -v "\${ARGS[@]}" --junitxml="$RERUN_XML" || true --environment=$ENVIRONMENT
-        else
-          echo "No failed test files found to rerun."
+        if [ -s "${failedFile}" ]; then
+          echo "Found failed tests in ${failedFile}, re-running them..."
+          echo "Running command: pytest @${failedFile} --junitxml=${rerunFile} || true --environment=${environment} --browser_profile_name=${browserProfile}"
+          pytest @${failedFile} --junitxml="${rerunFile}" || true --environment=${environment} --browser_profile_name=${browserProfile}
         fi
-      else
-        echo "No results XML found at $RESULTS_XML, skipping rerun."
+
       fi
   rules:
     - if: '$SELECTED_GAMES =~ /${internalName}:/'
@@ -847,11 +903,48 @@ test_${internalName}:
   artifacts:
     untracked: true
     paths:
-      - reports/results_${internalName}.xml
-      - reports/rerun_${internalName}.xml
-      - reports/failed_files_${internalName}.txt
+      - ${resultsFile}
+      - ${rerunFile}
+      - ${failedFile}
     when: always
-    `;
+`;
+  };
+
+  let groupCounter = 0;
+
+  const testJobs = selectedGames.flatMap((game) => {
+    const [gameName, ...suites] = game.split(':');
+    const internalName = gameName.toLowerCase().replace(/\s+/g, '_');
+    const uniqueSuites = [...new Set(suites)];
+
+    const platforms = { desktop: false, mobile: false };
+    const suiteMarkers = { desktop: [], mobile: [] };
+
+    for (const suite of uniqueSuites) {
+      const suiteEntry = suiteMap[suite];
+      if (!suiteEntry) continue;
+
+      for (const platform of ['desktop', 'mobile']) {
+        if (suiteEntry[platform] !== undefined) {
+          platforms[platform] = true;
+          suiteMarkers[platform].push(suiteEntry[platform]);
+        }
+      }
+    }
+
+    const jobs = [];
+
+    for (const platform of ['desktop', 'mobile']) {
+      if (platforms[platform]) {
+        const joinedMarkers = suiteMarkers[platform].join(' ');
+        const groupId = (groupCounter % maxConcurrentGroups) + 1;
+        groupCounter++;
+        const job = generateJob(internalName, gameName, platform, joinedMarkers.trim(), groupId);
+        jobs.push(job);
+      }
+    }
+
+    return jobs;
   });
 
   const assumeRoleAnchor = `
@@ -872,18 +965,16 @@ notify_pipeline_start:
   stage: notify_pipeline_start
   image: alpine/curl:latest
   script:
-    - echo $(date +%s) > start_time.txt
     - |
-      curl -X POST -H 'Content-type: application/json' --data '{
-        "text": "*🚀 Pipeline Started 🚀*\\n*Project:* '$CI_PROJECT_NAME'\\n*Branch:* <'$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME'|'$CI_COMMIT_REF_NAME'>\\n*Commit:* <'$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA'|'$CI_COMMIT_SHORT_SHA'>\\n*Environment:* '$ENVIRONMENT'\\n*Pipeline URL:* <'$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID'|'$CI_PIPELINE_ID'>",
-        "channel": "'$SLACK_CHANNEL'",
-        "username": "gitlab-ci",
-        "icon_emoji": ":rocket:"
-      }' $SLACK_WEBHOOK_URL
-  artifacts:
-    paths:
-      - start_time.txt
-    expire_in: 6 hours
+      MESSAGE="*🚀 Pipeline Started 🚀*\\n
+      *Project:* $CI_PROJECT_NAME
+      *Branch:* <$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME|$CI_COMMIT_REF_NAME>
+      *Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>
+      *Environment:* $ENVIRONMENT
+      *Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|$CI_PIPELINE_ID>"
+    - |
+      PAYLOAD=$(printf '{"text":"%s","channel":"%s","username":"gitlab-ci","icon_emoji":":gitlab:"}' "$MESSAGE" "$SLACK_CHANNEL")
+      curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
   rules:
     - if: $CI_PIPELINE_SOURCE == "trigger"
   allow_failure: true
@@ -892,11 +983,12 @@ notify_pipeline_start:
   const notifyPipelineEnd = `
 notify_pipeline_end:
   stage: notify_pipeline_end
-  image: alpine/curl:latest
+  image: python:3.11-alpine
   script:
-    - START_TIME=$(cat start_time.txt 2>/dev/null || echo 0)
+    - apk add --no-cache curl
+    - CREATED_TIME=$(python3 -c "import datetime; print(int(datetime.datetime.fromisoformat('$CI_PIPELINE_CREATED_AT'.replace('Z', '+00:00')).timestamp()))")
     - END_TIME=$(date +%s)
-    - DURATION_SEC=$((END_TIME - START_TIME))
+    - DURATION_SEC=$((END_TIME - CREATED_TIME))
     - DURATION_FMT=$(printf '%02dh:%02dm:%02ds' $((DURATION_SEC/3600)) $(((DURATION_SEC%3600)/60)) $((DURATION_SEC%60)))
     - |
       if [ "$CI_PIPELINE_STATUS" = "success" ]; then
@@ -905,7 +997,15 @@ notify_pipeline_end:
         STATUS_TEXT="❌ *Pipeline Failed* ❌"
       fi
     - |
-      MESSAGE="*🏁 Pipeline Finished 🏁*\\n$STATUS_TEXT\\n*Project:* $CI_PROJECT_NAME\\n*Branch:* <$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME|$CI_COMMIT_REF_NAME>\\n*Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>\\n*Environment:* $ENVIRONMENT\\n*Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|$CI_PIPELINE_ID>\\n*Duration:* $DURATION_FMT\\n*Results:* <https://pypipe.456842.xyz/results/$CI_PIPELINE_ID|View>"
+      MESSAGE="*🏁 Pipeline Finished 🏁*\\n
+      $STATUS_TEXT\\n
+      *Project:* $CI_PROJECT_NAME
+      *Branch:* <$CI_PROJECT_URL/-/commits/$CI_COMMIT_REF_NAME|$CI_COMMIT_REF_NAME>
+      *Commit:* <$CI_PROJECT_URL/-/commit/$CI_COMMIT_SHA|$CI_COMMIT_SHORT_SHA>
+      *Environment:* $ENVIRONMENT
+      *Pipeline URL:* <$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID|$CI_PIPELINE_ID>
+      *Duration:* $DURATION_FMT
+      *Results:* <https://pypipe.456842.xyz/results/$CI_PIPELINE_ID|View>"
     - |
       PAYLOAD=$(printf '{"text":"%s","channel":"%s","username":"gitlab-ci","icon_emoji":":gitlab:"}' "$MESSAGE" "$SLACK_CHANNEL")
       curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
@@ -928,7 +1028,7 @@ stages:
 
 ${notifyPipelineStart}
 
-${testJobs.join('\n\n')}
+${testJobs.join('\n')}
 
 ${notifyPipelineEnd}
 `;

@@ -1309,6 +1309,61 @@ async function triggerPipeline(branch) {
 
 // Pipeline generation and triggering functionality
 document.addEventListener('DOMContentLoaded', async () => {
+
+    window.deleteUser = async function (id, username) {
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
+        try {
+            const res = await fetch(`/api/users/${id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            if (!res.ok) throw new Error('Failed to delete user');
+            loadAdminUsers();
+        } catch (err) {
+            alert(`❌ ${err.message}`);
+        }
+    };
+
+    window.deleteGame = async function (id, displayName) {
+        if (!confirm(`Are you sure you want to delete game "${displayName}"?`)) return;
+        try {
+            const res = await fetch(`/api/games/${id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            if (!res.ok) throw new Error('Failed to delete game');
+            loadAdminGames();
+        } catch (err) {
+            alert(`❌ ${err.message}`);
+        }
+    };
+
+    window.deleteEnv = async function (id, displayName) {
+        if (!confirm(`Are you sure you want to delete environment "${displayName}"?`)) return;
+        try {
+            const res = await fetch(`/api/environments/${id}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) throw new Error('Failed to delete environment');
+            loadAdminEnvs();
+        } catch (err) {
+            alert(`❌ ${err.message}`);
+        }
+    };
+
+    window.deleteBrowser = async function (id, displayName) {
+        if (!confirm(`Are you sure you want to delete browser "${displayName}"?`)) return;
+        try {
+            const res = await fetch(`/api/browser-profiles/${id}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) throw new Error('Failed to delete browser profile');
+            loadAdminBrowsers();
+        } catch (err) {
+            alert(`❌ ${err.message}`);
+        }
+    };
+
     // DOM elements
     const loginForm = document.getElementById('login-form');
     const loggedInUser = document.getElementById('logged-in-user');
@@ -1476,7 +1531,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateTableBasedOnButtons();
     }    
 
-    await loadGames();
+    // await loadGames();
+    // await loadSelectors();
 
     showPipelineStatus('No pipeline generated or triggered yet', 'info', '', 'default-message');
 
@@ -1515,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             newUName.value = '';
             newUPassword.value = '';
 
-            loadUserList();
+            loadAdminUsers();
         } catch (err) {
             adminFeedback.textContent = `❌ ${err.message}`;
             adminFeedback.style.color = 'red';
@@ -1569,39 +1625,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }    
 
-    async function loadUserList() {
+    async function loadAdminUsers() {
         try {
             const res = await fetch('/api/users', { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to load users');
             const users = await res.json();
     
-            userList.innerHTML = '';
+            const tbody = userList.querySelector('tbody');
+            tbody.innerHTML = '';
             users.forEach(u => {
-                const li = document.createElement('li');
-                li.textContent = `${u.username} (${u.name}) `;
-    
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = '❌';
-                deleteBtn.style.marginLeft = '10px';
-                deleteBtn.style.cursor = 'pointer';
-                deleteBtn.addEventListener('click', async () => {
-                    if (!confirm(`Are you sure you want to delete user "${u.username}"?`)) return;
-    
-                    try {
-                        const res = await fetch(`/api/users/${u.id}`, {
-                            method: 'DELETE',
-                            credentials: 'include'
-                        });
-                        if (!res.ok) throw new Error('Failed to delete user');
-                        loadUserList();
-                    } catch (err) {
-                        alert(`❌ ${err.message}`);
-                    }
-                });
-    
-                li.appendChild(deleteBtn);
-                userList.appendChild(li);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${u.username}</td>
+                    <td>${u.name}</td>
+                    <td>
+                        <button onclick="deleteUser(${u.id}, '${u.username}')">❌</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
             });
+
         } catch (err) {
             userList.innerHTML = `<li style="color:red;">❌ ${err.message}</li>`;
         }
@@ -1611,34 +1654,98 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const res = await fetch('/api/games');
             const games = await res.json();
-    
-            const gamesList = document.getElementById('games-list');
-            gamesList.innerHTML = '';
-    
+
+            const tbody = document.getElementById('games-list').querySelector('tbody');
+            tbody.innerHTML = '';
             games.forEach(game => {
-                const li = document.createElement('li');
-                li.textContent = `${game.display_name} (${game.internal_name}) `;
-    
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.addEventListener('click', async () => {
-                    if (confirm(`Delete game "${game.display_name}"?`)) {
-                        const resp = await fetch(`/api/games/${game.id}`, { method: 'DELETE' });
-                        if (resp.ok) {
-                            loadAdminGames();
-                        } else {
-                            alert('Failed to delete game');
-                        }
-                    }
-                });
-    
-                li.appendChild(deleteBtn);
-                gamesList.appendChild(li);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${game.display_name}</td>
+                    <td>${game.internal_name}</td>
+                    <td><button onclick="deleteGame(${game.id}, '${game.display_name}')">❌</button></td>
+                `;
+                tbody.appendChild(row);
             });
         } catch (err) {
             console.error('Failed to load games', err);
         }
     }
+
+    async function loadAdminEnvs() {
+        try {
+            const res = await fetch('/api/environments');
+            const envs = await res.json();
+
+            const tbodyEnvs = document.getElementById('env-list').querySelector('tbody');
+            tbodyEnvs.innerHTML = '';
+
+            envs.forEach(env => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${env.display_name}</td>
+                    <td>${env.internal_name}</td>
+                    <td><button onclick="deleteEnv(${env.id}, '${env.display_name}')">❌</button></td>
+                `;
+                tbodyEnvs.appendChild(row);
+            });
+        } catch (err) {
+            console.error('❌ Failed to load environments:', err);
+        }
+    }
+
+    async function loadAdminBrowsers() {
+        try {
+            const res = await fetch('/api/browser-profiles');
+            const browsers = await res.json();
+
+            const tbodyBrowsers = document.getElementById('browser-list').querySelector('tbody');
+            tbodyBrowsers.innerHTML = '';
+
+            browsers.forEach(profile => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${profile.display_name}</td>
+                    <td>${profile.internal_name}</td>
+                    <td>${profile.type}</td>
+                    <td><button onclick="deleteBrowser(${profile.id}, '${profile.display_name}')">❌</button></td>
+                `;
+                tbodyBrowsers.appendChild(row);
+            });
+        } catch (err) {
+            console.error('❌ Failed to load browser profiles:', err);
+        }
+    }
+
+    document.getElementById('add-env-btn').onclick = async () => {
+        const display = document.getElementById('new-env-display').value.trim();
+        const internal = document.getElementById('new-env-internal').value.trim();
+        if (display && internal) {
+            await fetch('/api/environments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ display_name: display, internal_name: internal })
+            });
+            // loadAdminLists();
+            loadAdminEnvs();
+            // loadSelectors();
+        }
+    };
+
+    document.getElementById('add-browser-btn').onclick = async () => {
+        const display = document.getElementById('new-browser-display').value.trim();
+        const internal = document.getElementById('new-browser-internal').value.trim();
+        const type = document.getElementById('new-browser-type').value;
+        if (display && internal && type) {
+            await fetch('/api/browser-profiles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ display_name: display, internal_name: internal, type })
+            });
+            // loadAdminLists();
+            loadAdminBrowsers();
+            // loadSelectors();
+        }
+    };
     
     document.getElementById('add-game-btn').addEventListener('click', async () => {
         const display = document.getElementById('new-game-display').value.trim();
@@ -1735,15 +1842,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     function showLoggedInState(user) {
         if (user.isAdmin) {
             adminSection.style.display = 'block';
-            loadUserList();
-            document.getElementById('admin-games-section').style.display = 'block';
+            loadAdminUsers();
+            loadAdminEnvs();
+            loadAdminBrowsers();
             loadAdminGames();
         } else {
             adminSection.style.display = 'none';
-            document.getElementById('admin-games-section').style.display = 'none';
             document.getElementById('generate-btn').disabled = false;
             document.getElementById('app-content').style.display = 'block';
             document.getElementById('footer').style.display = 'block';
+            loadSelectors();
+            loadGames();
         }
         loginForm.classList.remove('centered');
         loginForm.style.display = 'none';
@@ -1761,7 +1870,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('app-content').style.display = 'none';
         document.getElementById('footer').style.display = 'none';
         adminSection.style.display = 'none';
-        document.getElementById('admin-games-section').style.display = 'none';
         document.getElementById('username').value = '';
         document.getElementById('password').value = '';
     }
@@ -1775,9 +1883,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 5000);
     }
 
-    const slimEnvSelector = new SlimSelect({
-        select: '#env-selector'
-    });
+    let slimEnvSelector, slimDesktopBrowser, slimMobileBrowser;
+
+    async function loadSelectors() {
+        // Environments
+        const envs = await (await fetch('/api/environments')).json();
+        const profiles = await (await fetch('/api/browser-profiles')).json();
+
+        if (slimEnvSelector) slimEnvSelector.destroy();
+        if (slimDesktopBrowser) slimDesktopBrowser.destroy();
+        if (slimMobileBrowser) slimMobileBrowser.destroy();
+
+        slimEnvSelector = new SlimSelect({
+            select: '#env-selector',
+            data: envs.map(e => ({
+                text: e.display_name,
+                value: e.internal_name,
+                selected: e.internal_name === 'stage'  // default value
+            }))
+        });
+
+        slimDesktopBrowser = new SlimSelect({
+            select: '#desktop-browser-selector',
+            data: profiles.filter(p => p.type === 'desktop').map(p => ({
+                text: p.display_name,
+                value: p.internal_name,
+                selected: p.internal_name === 'chrome1920x1080'  // default value
+            }))
+        });
+
+        slimMobileBrowser = new SlimSelect({
+            select: '#mobile-browser-selector',
+            data: profiles.filter(p => p.type === 'mobile').map(p => ({
+                text: p.display_name,
+                value: p.internal_name,
+                selected: p.internal_name === 'chrome_m_galaxy_a51_71'  // default value
+            }))
+        });
+    }
 
     let slimBranchSelector;
 
@@ -1825,12 +1968,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         value: branch
                     }))
                 ],
-                events: {
-                    afterOpen: () => {
-                        const searchInput = document.querySelector('.ss-search input');
-                        if (searchInput) searchInput.focus();
-                    }
-                }
+                // events: {
+                //     afterOpen: () => {
+                //         const searchInput = document.querySelector('.ss-search input');
+                //         if (searchInput) searchInput.focus();
+                //     }
+                // }
             });
             
         } catch (error) {
@@ -1854,7 +1997,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function generatePipeline() {
         const selectedEnv = slimEnvSelector.getSelected()[0];
+        const desktopProfile = slimDesktopBrowser.getSelected()[0];
+        const mobileProfile = slimMobileBrowser.getSelected()[0];
         const outputText = document.getElementById('output-text').value;
+
         if (!outputText) {
             showPipelineStatus('Please select at least one game to test', 'error');
             return;
@@ -1868,7 +2014,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ selectedGames: outputText.split(','), environment: selectedEnv })
+                body: JSON.stringify({
+                    selectedGames: outputText.split(','),
+                    environment: selectedEnv,
+                    desktopProfile,
+                    mobileProfile
+                })
             });
 
             if (!response.ok) throw new Error('Failed to generate pipeline');
@@ -2080,7 +2231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Polling error:', error);
                 showPipelineStatus('❌ Pipeline updates stopped due to error.', 'error');
             }
-        }, 10000);
+        }, 60000);
     }   
        
     function summarizeResults(results) {
@@ -2109,13 +2260,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const rerunArgs = [];
 
         failedTests.forEach((test, idx) => {
-            const testName = (test.name || test.classname || 'Unnamed Test').slice(0, 80);
+            const testName = (test.name || test.classname || 'Unnamed Test').slice(0, 100);
 
             const testRow = document.createElement('div');
             testRow.style.display = 'flex';
             testRow.style.alignItems = 'center';
             testRow.style.gap = '10px';
             testRow.style.marginTop = '5px';
+            testRow.style.borderBottom = '1px solid #666';
 
             const nameSpan = document.createElement('span');
             nameSpan.textContent = `- ${testName}`;
@@ -2159,7 +2311,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Generate full command
         if (rerunArgs.length > 0) {
             const env = failedTests[0].environment || 'stage'; // fallback to 'stage' if missing
-            const fullCommand = `pytest -v ${rerunArgs.join(' ')} --environment=${env}`;
+            const browserProfile = failedTests[0].browser_profile_name || '';
+            const fullCommand = `pytest -v ${rerunArgs.join(' ')} --environment=${env}${browserProfile ? ` --browser_profile_name=${browserProfile}` : ''}`;
 
             const copyBtn = document.createElement('button');
             copyBtn.textContent = '📋 Copy re-run command for failed tests';
@@ -2296,8 +2449,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             summaryBox.id = 'pipeline-summary';
             summaryBox.innerHTML = `
                 <h2>Pipeline #${pipeline.pipeline_id} (${pipeline.status})</h2>
-                <p>Branch: <strong>${pipeline.ref || 'N/A'}</strong>, Created: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</p>
-                <p>Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}, Errors: ${summary.error}</p>
+                <p>Branch: <strong>${pipeline.ref || 'N/A'}</strong></br>
+                Environment: <strong>${pipeline.environment || 'N/A'}</strong></br>
+                Started: ${pipeline.created_at ? new Date(pipeline.created_at).toLocaleString() : 'N/A'}</br>
+                Finished: ${pipeline.finished_at ? new Date(pipeline.finished_at).toLocaleString() : 'N/A'}</br>
+                Duration: ${pipeline.duration ? pipeline.duration : 'N/A'}</br>
+                Total Tests: ${summary.total}, Passed: ${summary.passed}, Failed: ${summary.failed}, Skipped: ${summary.skipped}, Errors: ${summary.error}</p>
                 <div id="search-summary-chart" style="max-width: 500px; margin: 20px 0;"></div>
             `;
             wrapper.appendChild(summaryBox);
@@ -2328,14 +2485,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 contentWrapper.style.display = 'none';
 
                 const baseName = job.name.replace(/^test_/, '');
-                const displayGame = baseName.charAt(0).toUpperCase() + baseName.slice(1).replace(/_/g, ' ');
+                const parts = baseName.split('_');
+                const platform = parts.pop(); // 'desktop' or 'mobile'
+                const gameName = parts.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                const displayGame = `${gameName} - ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
 
                 let formattedSuites = '';
                 if (job.suites) {
                     const suiteList = job.suites.split(',').map(s =>
                         s.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
                     );
-                    formattedSuites = ` (${suiteList.join(', ')})`;
+                    formattedSuites = `${suiteList.join(', ')}`;
                 }
 
                 // COLLAPSIBLE HEADER
@@ -2354,7 +2514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const title = document.createElement('h3');
                 title.style.margin = 0;
-                title.textContent = `Job: ${displayGame}${formattedSuites}`;
+                title.textContent = `Job: ${displayGame} | Suites: ${formattedSuites} | Duration: ${job.duration || 'N/A'}`;
                 header.appendChild(title);
 
                 if (hasFailures) {

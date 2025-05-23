@@ -11,6 +11,7 @@
 </head>
 <body class="dark-mode">
     <div class="container">
+
         <div id="user-section">
             <div id="login-form" class="centered">
                 <input type="text" id="username" placeholder="Username" required>
@@ -30,26 +31,87 @@
                 <button id="cancel-password-btn">Cancel</button>
             </div>
         </div>
+
         <div id="admin-section" style="display:none; margin-top: 20px;">
-            <h3>Create New User (Admin Only)</h3>
-            <input type="text" id="new-user-username" placeholder="Username">
-            <input type="text" id="new-user-name" placeholder="Full Name">
-            <input type="password" id="new-user-password" placeholder="Password">
-            <button id="create-user-btn">Create User</button>
-            <div id="admin-feedback" style="margin-top:10px; color:green;"></div>
-        
-            <h3 style="margin-top:20px;">User List</h3>
-            <ul id="user-list" style="list-style:none; padding-left:0;"></ul>
-        </div>
-        <section id="admin-games-section" style="display:none; margin-top: 30px;">
-            <h3>Manage Games (Admin Only)</h3>
-            <div>
-                <input type="text" id="new-game-display" placeholder="Display Name">
-                <input type="text" id="new-game-internal" placeholder="Internal Name">
-                <button id="add-game-btn">Add Game</button>
+            <div id="manage-user-section">
+                <h2>Manage Users</h2>
+                <div id="add-user-form">
+                    <h4>Add User</h4>
+                    <input type="text" id="new-user-username" placeholder="Username">
+                    <input type="text" id="new-user-name" placeholder="Full Name">
+                    <input type="password" id="new-user-password" placeholder="Password">
+                    <button id="create-user-btn">Create User</button>
+                    <div id="admin-feedback" style="margin-top:10px; color:green;"></div>
+                </div>        
+                <h3>User List</h3>
+                <table id="user-list" class="admin-table">
+                    <thead>
+                        <tr><th>Username</th><th>Full Name</th><th>Action</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-            <ul id="games-list"></ul>
-        </section>
+
+            <div id="manage-env-section">
+                <h2>Manage Environments</h2>
+                <div id="add-env-form">
+                    <h4>Add Environment</h4>
+                    <input type="text" id="new-env-display" placeholder="Display Name">
+                    <input type="text" id="new-env-internal" placeholder="Internal Name">
+                    <button id="add-env-btn">Add Environment</button>
+                </div>
+                <h3>Environment List</h3>
+                <table id="env-list" class="admin-table">
+                    <thead>
+                        <tr><th>Display Name</th><th>Internal Name</th><th>Action</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div id="manage-browser-section">
+                <h2>Manage Browser Profiles</h2>
+                <div id="add-browser-form">
+                    <h4>Add Browser Profile</h4>
+                    <input type="text" id="new-browser-display" placeholder="Display Name">
+                    <input type="text" id="new-browser-internal" placeholder="Internal Name">
+                    <select id="new-browser-type">
+                        <option value="desktop">Desktop</option>
+                        <option value="mobile">Mobile</option>
+                    </select>
+                    <button id="add-browser-btn">Add Browser Profile</button>
+                </div>
+                <h3>Browser Profile List</h3>
+                <table id="browser-list" class="admin-table">
+                    <thead>
+                        <tr><th>Display Name</th><th>Internal Name</th><th>Type</th><th>Action</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div id="manage-game-section">
+                <h2>Manage Games</h2>
+                <div id="add-game-form">
+                    <h4>Add Game</h4>
+                    <input type="text" id="new-game-display" placeholder="Display Name">
+                    <input type="text" id="new-game-internal" placeholder="Internal Name">
+                    <button id="add-game-btn">Add Game</button>
+                </div>
+                <h3>Game List</h3>
+                <!-- <ul id="games-list"></ul> -->
+                <table id="games-list" class="admin-table">
+                    <thead>
+                        <tr><th>Display Name</th><th>Internal Name</th><th>Action</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+        </div>
+        <!-- <section id="admin-games-section" style="display:none; margin-top: 30px;"> -->
+
+        <!-- </section> -->
         <div id="app-content" style="display: none;">
             <header>
                 <h1>GitLab Pipeline Generator</h1>
@@ -58,7 +120,7 @@
             <div class="sub-title">Select on which environment to run</div>
             <div id="env-section">
                 <select id="env-selector">
-                  <option value="stage">Stage</option>
+                  <!-- <option value="stage">Stage</option>
                   <option value="preprod">Pre-Prod</option>
                   <option value="certification">Certification</option>
                   <option value="qa01">QA01</option>
@@ -69,8 +131,24 @@
                   <option value="qa06">QA06</option>
                   <option value="qa07">QA07</option>
                   <option value="qa08">QA08</option>
-                  <option value="qa09">QA09</option>
+                  <option value="qa09">QA09</option> -->
                 </select>
+            </div>
+            <div id="platform-selections">
+                <div class="desktop-browser-selection" style="max-width: 600px;">
+                    <div class="sub-title" style="padding-left: 0px;">Select Desktop Browser Profile</div>
+                        <select id="desktop-browser-selector">
+                        <!-- <option value="chrome1920x1080">Chrome - 1920 x 1080</option>
+                        <option value="chrome1366x768">Chrome - 1366 x 768</option>
+                        <option value="firefox1920x1080">Firefox - 1920 x 1080</option> -->
+                        </select>
+                    </div>
+                <div class="mobile-browser-selection" style="max-width: 600px;">
+                    <div class="sub-title" style="padding-left: 0px;">Select Mobile Device Profile</div>
+                        <select id="mobile-browser-selector">
+                        <!-- <option value="chrome_m_galaxy_a51_71">Samsung Galaxy A51/71</option> -->
+                        </select>
+                </div>
             </div>
             <div class="sub-title">Actions for All Games</div>
             <div class="all-games-actions">
