@@ -835,27 +835,27 @@ function generatePipelineYml(selectedGames, environment = 'stage', desktopProfil
 
   const suiteMap = {
     regression: { desktop: '', mobile: '' },
-    sanity: { desktop: ' -m sanity', mobile: ' -m sanity' },
-    smoke: { desktop: ' -m smoke', mobile: ' -m smoke' },
-    payouts: { desktop: ' -m payouts', mobile: ' -m payouts' },
-    ui: { desktop: ' -m ui', mobile: ' -m ui' },
-    analytics: { desktop: ' -m analytics', mobile: ' -m analytics' },
-    backoffice: { desktop: ' -m backoffice' },
-    oss: { desktop: ' -m oss' },
-    smapp: { desktop: ' -m smapp' },
+    sanity: { desktop: '-m sanity', mobile: '-m sanity' },
+    smoke: { desktop: '-m smoke', mobile: '-m smoke' },
+    payouts: { desktop: '-m payouts', mobile: '-m payouts' },
+    ui: { desktop: '-m ui', mobile: '-m ui' },
+    analytics: { desktop: '-m analytics', mobile: '-m analytics' },
+    backoffice: { desktop: '-m backoffice' },
+    oss: { desktop: '-m oss' },
+    smapp: { desktop: '-m smapp' },
     desktop: { desktop: '' },
     mobile: { mobile: '' },
-    desktop_payouts: { desktop: ' -m payouts' },
-    mobile_payouts: { mobile: ' -m payouts' },
-    desktop_ui: { desktop: ' -m ui' },
-    mobile_ui: { mobile: ' -m ui' },
-    desktop_analytics: { desktop: ' -m analytics' },
-    mobile_analytics: { mobile: ' -m analytics' }
+    desktop_payouts: { desktop: '-m payouts' },
+    mobile_payouts: { mobile: '-m payouts' },
+    desktop_ui: { desktop: '-m ui' },
+    mobile_ui: { mobile: '-m ui' },
+    desktop_analytics: { desktop: '-m analytics' },
+    mobile_analytics: { mobile: '-m analytics' }
   };
 
   const generateJob = (internalName, gameName, platform, markers, groupId) => {
     const browserProfile = platform === 'desktop' ? desktopProfile : mobileProfile;
-    const markerSuffix = markers ? ` ${markers}` : '';
+    const markersFormatted = markers ? ` ${markers}` : '';
     const testPath = `tests/${internalName}/${platform}/`;
     const resultsFile = `reports/results_${internalName}_${platform}.xml`;
     const rerunFile = `reports/rerun_${internalName}_${platform}.xml`;
@@ -874,8 +874,8 @@ test_${internalName}_${platform}:
   script:
     - |
       echo "Running ${gameName} ${platform} tests"
-      echo "Running command: pytest ${testPath}${markers} --junitxml=${resultsFile} --environment=${environment} --browser_profile_name=${browserProfile}"
-      pytest ${testPath}${markers} --junitxml=${resultsFile} || true --environment=${environment} --browser_profile_name=${browserProfile}
+      echo "Running command: pytest ${testPath}${markersFormatted} --junitxml=${resultsFile} --environment=${environment} --browser_profile_name=${browserProfile}"
+      pytest ${testPath}${markersFormatted} --junitxml=${resultsFile} || true --environment=${environment} --browser_profile_name=${browserProfile}
 
       echo "Checking for failed tests to re-run for ${internalName}_${platform}..."
 
